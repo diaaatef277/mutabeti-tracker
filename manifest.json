@@ -1,6 +1,6 @@
 {
- "name": "متابعتي",
- "short_name": "متابعتي",
+ "name": "سبيلي",
+ "short_name": "سبيلي",
  "start_url": "./",
  "scope": "./",
  "display": "standalone",
