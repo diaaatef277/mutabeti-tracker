@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="ar" dir="rtl"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#2383e2">
+<meta name="theme-color" content="#287b6c">
 <meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="سبيلي">
 <title>سبيلي</title>
 <style>:root{--bg:#fff;--bg2:#f7f6f3;--bg3:#efeeea;--tx:#37352f;--tx2:#787774;--bd:#e9e8e4;--ac:#2383e2;--acbg:#e7f3f8;--ok:#0f9d58;--warn:#d9730d;--bad:#e03e3e;--sh:0 1px 3px rgba(15,15,15,.08),0 4px 14px rgba(15,15,15,.06);--r:12px}
@@ -190,14 +190,112 @@ textarea.notes{min-height:160px;resize:vertical;line-height:1.7}
 #lock,#authscr{position:fixed;inset:0;z-index:9999;background:var(--bg);display:flex;align-items:center;justify-content:center}.lockbox{text-align:center;width:min(320px,86vw)}.lockbox input{width:100%;text-align:center;font-size:22px;letter-spacing:6px;padding:10px;margin:10px 0}#authscr .lockbox input{font-size:16px;letter-spacing:0;text-align:start}#authscr .lockbox .btn{width:100%;margin-top:4px}
 body.locked .app,body.locked .tabs{visibility:hidden}
 @media print{.side,.tabs,.top,.fab,.noprint,.mxmon button{display:none!important}.main{margin:0!important}}
+/* Sabeely modern visual layer — presentation only; app logic and data remain unchanged */
+:root{
+ --bg:#fbfcfa;--bg2:#f2f6f3;--bg3:#e9f0ec;--tx:#1f302b;--tx2:#687b73;--bd:#e1eae4;
+ --ac:#287b6c;--acbg:#e3f2ed;--ok:#23845b;--warn:#bd762c;--bad:#cf5555;
+ --sh:0 2px 8px rgba(28,61,49,.045),0 12px 30px rgba(28,61,49,.055);--r:17px
+}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#111b18;--bg2:#17231f;--bg3:#22312b;--tx:#e8f1ec;--tx2:#9aada3;--bd:#2b3d35;--ac:#72c7ae;--acbg:#203b32;--ok:#64bd91;--warn:#e3ad69;--bad:#f08080;--sh:0 4px 18px rgba(0,0,0,.2)}}
+:root[data-theme=dark]{--bg:#111b18;--bg2:#17231f;--bg3:#22312b;--tx:#e8f1ec;--tx2:#9aada3;--bd:#2b3d35;--ac:#72c7ae;--acbg:#203b32;--ok:#64bd91;--warn:#e3ad69;--bad:#f08080;--sh:0 4px 18px rgba(0,0,0,.2)}
+html,body{background:var(--bg);color:var(--tx);font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI","Noto Sans Arabic",Tahoma,sans-serif;letter-spacing:0}
+body{background-image:radial-gradient(ellipse at 92% 0%,rgba(40,123,108,.045),transparent 34rem)}
+.side{background:var(--bg2);border-inline-end:1px solid var(--bd);padding:22px 13px;box-shadow:4px 0 24px rgba(28,61,49,.025)}
+.brand{font-size:20px;font-weight:800;letter-spacing:-.4px;padding:9px 12px 22px;color:var(--tx)}
+.nav{display:flex;flex-direction:column;gap:4px}
+.nav a{padding:10px 12px;border-radius:12px;font-size:14px;font-weight:550;transition:background .18s,color .18s,transform .18s}
+.nav a:hover{background:var(--bg3);transform:translateX(-2px)}
+.nav a.on{background:var(--acbg);color:var(--ac);font-weight:750;box-shadow:inset -3px 0 0 var(--ac)}
+.nav .sep{margin:14px 8px}
+.main{padding-bottom:100px}
+.wrap{max-width:1120px;padding:24px 24px}
+.top{background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-bottom:1px solid var(--bd);padding:12px 16px}
+.top b{font-size:16px;font-weight:800}
+.ib{width:40px;height:40px;border:1px solid var(--bd);background:var(--bg2);font-size:20px}
+.tabs{background:color-mix(in srgb,var(--bg) 92%,transparent);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border-top:1px solid var(--bd);padding:7px 3px max(7px,env(safe-area-inset-bottom));gap:3px}
+.tabs a{border-radius:12px;padding:5px 2px;min-width:0;font-weight:600;transition:background .18s,color .18s}
+.tabs a span{font-size:19px;margin-bottom:2px}
+.tabs a.on{background:var(--acbg);color:var(--ac)}
+h1{font-size:clamp(25px,3vw,34px);font-weight:850;letter-spacing:-.8px}
+h2{font-size:17px;font-weight:800;letter-spacing:-.2px;margin:26px 0 12px}
+h2 small a{font-weight:650}
+.banner{position:relative;isolation:isolate;overflow:hidden;margin:-24px -24px 18px;padding:30px 26px 24px;border:1px solid color-mix(in srgb,var(--ac) 13%,var(--bd));border-radius:0 0 26px 26px;background:linear-gradient(125deg,var(--acbg) 0%,var(--bg2) 55%,var(--bg) 100%);box-shadow:0 12px 32px rgba(35,91,75,.045)}
+.banner:after{content:"";position:absolute;z-index:-1;width:270px;height:270px;border-radius:50%;inset-inline-end:-90px;top:-155px;background:radial-gradient(circle,rgba(40,123,108,.16),rgba(40,123,108,0) 70%)}
+.banner h1{margin:0 0 6px}
+.banner>.muted{font-size:14px;font-weight:550}
+.acts2{gap:8px;margin-top:17px}
+.btn{border-radius:11px;padding:9px 14px;font-weight:650;transition:transform .16s,box-shadow .16s,background .16s;border-color:var(--bd)}
+.btn:hover{transform:translateY(-1px);box-shadow:0 5px 14px rgba(25,65,51,.09)}
+.btn.pri{background:linear-gradient(135deg,var(--ac),color-mix(in srgb,var(--ac) 76%,#173f35));border-color:transparent;box-shadow:0 5px 13px color-mix(in srgb,var(--ac) 20%,transparent)}
+.btn.bad{background:color-mix(in srgb,var(--bad) 7%,var(--bg))}
+.gs{margin-top:15px}
+.gs input,#gq{min-height:46px;border-radius:14px;border:1px solid color-mix(in srgb,var(--ac) 16%,var(--bd));box-shadow:0 3px 12px rgba(25,65,51,.035);padding:11px 15px}
+.box{border-color:var(--bd);border-radius:16px;padding:15px 16px;box-shadow:var(--sh);transition:border-color .18s,box-shadow .18s}
+.box.stat{min-height:91px;padding:15px}
+.stat .n{font-size:26px;font-weight:850;letter-spacing:-.6px}
+.ring{width:56px;height:56px}
+.ring i{width:43px;height:43px;font-weight:800}
+.emo{font-size:28px}
+.grid{gap:13px}
+.row{padding:12px 5px;gap:11px}
+.row:not(.done) .t>a{font-weight:650}
+.ck{border-radius:8px;transition:background .15s,transform .15s}
+.ck:active{transform:scale(.92)}
+.chip{padding:4px 10px;font-weight:650}
+input,select,textarea{border-radius:11px;border-color:var(--bd);padding:10px 12px}
+input:focus,select:focus,textarea:focus{outline:3px solid color-mix(in srgb,var(--ac) 20%,transparent);outline-offset:0;border-color:var(--ac)}
+.seg{border-radius:11px}.seg button{padding:8px 12px}.seg button.on{background:var(--acbg);color:var(--ac)}
+.card{border-color:var(--bd);border-radius:16px;box-shadow:var(--sh);transition:transform .18s,box-shadow .18s}
+.card:hover{transform:translateY(-3px);box-shadow:0 8px 24px rgba(25,65,51,.12)}
+.card .meta{padding:10px 11px 12px}
+.gallery{gap:15px}
+.shelf{gap:14px;padding:4px 2px 13px}
+.shelf .card{width:142px}
+.col{background:var(--bg2);border:1px solid var(--bd);border-radius:16px;padding:10px}
+.sheet>div{border:1px solid var(--bd);box-shadow:0 20px 70px rgba(0,0,0,.2)}
+.sheet h3{font-size:19px;font-weight:800}
+.fab{width:58px;height:58px;border-radius:19px;background:linear-gradient(145deg,var(--ac),color-mix(in srgb,var(--ac) 72%,#153d34));box-shadow:0 8px 22px color-mix(in srgb,var(--ac) 28%,transparent);font-weight:400}
+.toast{box-shadow:0 8px 28px rgba(0,0,0,.18);border:1px solid color-mix(in srgb,var(--bg) 18%,transparent)}
+.cal button.dy{border-radius:10px}.cal button.dy.sel{background:var(--acbg);border-color:var(--ac)}
+.tbl{border-color:var(--bd);border-radius:14px}.tbl th{background:var(--bg2)}
+.heat{gap:5px}.heat i{border-radius:5px}
+#lock,#authscr{background:radial-gradient(ellipse at 50% 15%,var(--acbg),var(--bg) 65%)}
+.lockbox{background:var(--bg);border:1px solid var(--bd);border-radius:22px;padding:26px 22px;box-shadow:var(--sh)}
+@media(max-width:860px){
+ .wrap{padding:14px 13px 20px}
+ .banner{margin:-14px -13px 16px;padding:24px 16px 18px;border-radius:0 0 22px 22px}
+ .banner h1{font-size:26px}
+ .acts2 .btn{padding:8px 11px;font-size:13px}
+ .box{padding:13px;border-radius:15px}
+ .tabs{overflow-x:auto;justify-content:flex-start;scrollbar-width:none}
+ .tabs::-webkit-scrollbar{display:none}
+ .tabs a{flex:0 0 68px;font-size:10px}
+ .fab{bottom:88px;inset-inline-end:14px}
+}
+@media(max-width:480px){
+ .grid.g4{gap:8px}
+ .box.stat{gap:9px;padding:11px 9px;min-height:80px}
+ .stat .n{font-size:22px}
+ .ring{width:48px;height:48px}.ring i{width:37px;height:37px;font-size:11px}
+ .emo{font-size:24px}
+ h2{margin-top:22px}
+ .shelf .card{width:128px}
+}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+
+
+:focus-visible{outline:3px solid color-mix(in srgb,var(--ac) 70%,white);outline-offset:3px;border-radius:6px}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid var(--ac);outline-offset:2px}
+.toast[role="status"]{max-width:min(92vw,560px)}
+@media(prefers-reduced-motion:reduce){html:focus-within{scroll-behavior:auto}}
 </style></head><body>
 <div class="app">
-<aside class="side"><div class="brand">📓 سبيلي</div><nav class="nav" id="nav"><a data-nav href="#/">🏠 الرئيسية</a><a data-nav href="#/tasks">✅ المهام</a><a data-nav href="#/habits">🔁 العادات</a><a data-nav href="#/books">📚 الكتب</a><a data-nav href="#/movies">🎬 الأفلام</a><a data-nav href="#/learning">🎓 التعلّم</a><a data-nav href="#/plans">📅 الخطط</a><a data-nav href="#/week">📊 الأسبوع</a><a data-nav href="#/goals">🎯 أهداف السنة</a><a data-nav href="#/money">💰 المصاريف</a><a data-nav href="#/calendar">📆 التقويم</a><a data-nav href="#/report">📈 التقرير الشهري</a><a data-nav href="#/yearplan">🗓 الخطة السنوية</a><a data-nav href="#/settings">⚙️ الإعدادات</a></nav></aside>
+<aside class="side"><div class="brand">📓 سبيلي</div><nav class="nav" id="nav"><a data-nav href="#/">🏠 الرئيسية</a><a data-nav href="#/tasks">✅ المهام</a><a data-nav href="#/habits">🔁 العادات</a><a data-nav href="#/books">📚 الكتب</a><a data-nav href="#/movies">🎬 الأفلام</a><a data-nav href="#/learning">🎓 التعلّم</a><a data-nav href="#/plans">📅 الخطط</a><a data-nav href="#/week">📊 الأسبوع</a><a data-nav href="#/inbox">📥 صندوق الوارد</a><a data-nav href="#/review">📝 المراجعة الأسبوعية</a><a data-nav href="#/goals">🎯 أهداف السنة</a><a data-nav href="#/money">💰 المصاريف</a><a data-nav href="#/calendar">📆 التقويم</a><a data-nav href="#/report">📈 التقرير الشهري</a><a data-nav href="#/yearplan">🗓 الخطة السنوية</a><a data-nav href="#/settings">⚙️ الإعدادات</a><a data-nav href="#/more">☰ المزيد</a></nav></aside>
 <div class="scrim" id="scrim"></div>
 <div class="main">
 <div class="top"><button class="ib" id="menubtn" aria-label="القائمة">☰</button><b id="top-title">سبيلي</b><button class="ib" id="topadd" aria-label="إضافة">＋</button></div>
 <div class="wrap" id="view"></div></div></div>
-<nav class="tabs"><a data-nav href="#/"><span>🏠</span>الرئيسية</a><a data-nav href="#/tasks"><span>✅</span>المهام</a><a data-nav href="#/habits"><span>🔁</span>العادات</a><a data-nav href="#/books"><span>📚</span>الكتب</a><a data-nav href="#/movies"><span>🎬</span>الأفلام</a><a data-nav href="#/learning"><span>🎓</span>التعلّم</a><a data-nav href="#/money"><span>💰</span>المصاريف</a><a data-nav href="#/calendar"><span>📆</span>التقويم</a></nav>
+<nav class="tabs"><a data-nav href="#/"><span>🏠</span>الرئيسية</a><a data-nav href="#/tasks"><span>✅</span>المهام</a><a data-nav href="#/habits"><span>🔁</span>العادات</a><a data-nav href="#/books"><span>📚</span>الكتب</a><a data-nav href="#/money"><span>💰</span>المصاريف</a><a data-nav href="#/more"><span>☰</span>المزيد</a></nav>
 <script>/*CORE*/
 const Core = (() => {
   const pad = n => String(n).padStart(2, '0');
@@ -430,15 +528,18 @@ const Core = (() => {
     return `<div class="bk"><span style="font-size:22px">⚠️</span><b>${loadInfo.corrupt ? 'البيانات المحفوظة كانت تالفة واتحفظت نسخة منها' : 'اتشال ' + loadInfo.dropped + ' عنصر تالف عند التحميل، واتحفظت نسخة كاملة قبل التنضيف'}</b><button class="btn pri sm" data-act="dlraw">تنزيل النسخة المحفوظة</button><button class="btn sm" data-act="dismissraw">تمام</button></div>`;
   }
   function toastUndo(msg, undo) {
-    const t = document.createElement('div'); t.className = 'toast'; t.appendChild(document.createTextNode(msg + ' '));
+    const t = document.createElement('div'); t.className = 'toast'; t.setAttribute('role', 'status'); t.setAttribute('aria-live', 'polite'); t.setAttribute('aria-atomic', 'true'); t.appendChild(document.createTextNode(msg + ' '));
     const b = document.createElement('button'); b.className = 'btn sm'; b.textContent = 'تراجع'; b.style.marginInlineStart = '8px';
     b.onclick = () => { t.remove(); undo(); }; t.appendChild(b); document.body.appendChild(t); setTimeout(() => t.remove(), 6000);
   }
+  let dataRevision = 0;
+  const summaryCache = new Map();
   function save() {
+    dataRevision++; summaryCache.clear();
     try { localStorage.setItem(KEY, JSON.stringify(state)); try { syncDirty(); } catch (e2) { } }
     catch (e) { if (!memoryOnly) { memoryOnly = true; toast('تعذّر الحفظ (المساحة ممتلئة أو التخزين مقفول)، اعمل نسخة احتياطية'); } }
   }
-  function toast(m) { const t = document.createElement('div'); t.className = 'toast'; t.textContent = m; document.body.appendChild(t); setTimeout(() => t.remove(), 2600); }
+  function toast(m) { const t = document.createElement('div'); t.className = 'toast'; t.setAttribute('role', 'status'); t.setAttribute('aria-live', 'polite'); t.setAttribute('aria-atomic', 'true'); t.textContent = m; document.body.appendChild(t); setTimeout(() => t.remove(), 2600); }
 
   const find = id => state.items.find(i => i.id === id);
   const ofType = t => state.items.filter(i => i.type === t);
@@ -512,11 +613,9 @@ const Core = (() => {
     const favs = state.items.filter(i => i.fav && i.type !== 'task');
     return `<div class="banner"><h1>${greet}${nm} 👋</h1><div class="muted">${dfmt(C.ymd(d), { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</div>
     <div class="acts2"><button class="btn pri" data-act="add" data-t="task">＋ مهمة</button><button class="btn" data-act="add" data-t="book">＋ كتاب</button><button class="btn" data-act="add" data-t="movie">＋ فيلم</button><button class="btn" data-act="add" data-t="plan">＋ خطة</button><button class="btn" data-act="add">＋ حاجة تانية</button></div>
-    <div class="gs"><input type="search" id="gq" placeholder="🔎 دوّر في كل حاجة (مهام، كتب، شهادات، مصاريف، طلبات...)"></div><div id="gres"></div></div>
+    <div class="gs"><input type="search" id="gq" placeholder="🔎 دوّر في كل حاجة (مهام، كتب، شهادات، مصاريف، طلبات...)"></div><div id="gres"></div><div class="qa" style="margin-top:10px"><input id="inbox-quick" maxlength="240" placeholder="📥 التقط فكرة أو حاجة بسرعة…"><button class="btn" data-act="inboxAddQuick">＋</button></div></div>
     ${recoveryBanner()}${bkBanner()}
     ${alertsBox(d)}
-    ${goalsBox()}
-    ${periodBox(d)}
     ${isDay ? `<div class="grid g4" style="margin-top:14px">
      <div class="box stat"><div class="ring" style="--p:${p}"><i>${p}%</i></div><div><div class="n" id="st-today">${done}/${today.length}</div><div class="muted">مهام النهارده</div></div></div>
      <div class="box stat"><div class="emo">⚡</div><div><div class="n" id="st-week">${week}</div><div class="muted">إنجازات آخر 7 أيام</div></div></div>
@@ -527,6 +626,8 @@ const Core = (() => {
     ${isDay ? `<h2>✅ مهام النهارده <small><a href="#/tasks">الكل</a> · <a href="#/calendar">التقويم</a></small></h2>
     <div class="box list">${today.length ? today.slice().sort((a, b) => C.isDone(a, d) - C.isDone(b, d)).slice(0, 10).map(t => taskRow(t, d)).join('') : '<div class="empty"><b>🌿</b>مفيش مهام النهارده. أضف مهمة بزر +</div>'}</div>` : `<p class="muted"><a href="#/tasks" style="color:var(--ac)">✅ كل المهام</a></p>`}
     ${dhabs.length ? `<h2>🔁 العادات <small><a href="#/habits">الكل</a></small></h2><div class="box list">${dhabs.map(h => habitRow(h, d)).join('')}</div>` : ''}
+    ${goalsBox()}
+    ${periodBox(d)}
     ${favs.length ? `<h2>⭐ المفضلة</h2><div class="shelf">${favs.map(it => miniCard(it)).join('')}</div>` : ''}
     ${cont.length ? `<h2>📖 كمّل من حيث وقفت</h2><div class="shelf">${cont.map(it => miniCard(it)).join('')}</div>` : ''}
     ${ofType('playlist').filter(x => C.statusOf(x) !== 'done').length ? `<h2>▶️ البلاي ليست <small><a href="#/learning">الكل</a></small></h2><div class="box list">${ofType('playlist').filter(x => C.statusOf(x) !== 'done').slice(0, 4).map(playRow).join('')}</div>` : ''}
@@ -543,7 +644,7 @@ const Core = (() => {
   function tasks() {
     const d = now(); const all = ofType('task');
     const cats = [...new Set(all.map(t => t.cat).filter(Boolean))];
-    let list = all.filter(t => (tf.freq === 'all' || (tf.freq === 'today' ? C.showsToday(t, d) : t.freq === tf.freq)) && (tf.cat === 'all' || t.cat === tf.cat) && (!tf.q || t.title.toLowerCase().includes(tf.q.toLowerCase())));
+    let list = all.filter(t => (tf.freq === 'all' || (tf.freq === 'today' ? C.showsToday(t, d) : tf.freq === 'overdue' ? (t.freq === 'once' && t.due && t.due < C.ymd(d) && !C.isDone(t, d)) : t.freq === tf.freq)) && (tf.cat === 'all' || t.cat === tf.cat) && (!tf.q || t.title.toLowerCase().includes(tf.q.toLowerCase())));
     const chip = (k, v, l, cur) => `<button class="${cur === v ? 'on' : ''}" data-act="${k}" data-v="${v}">${l}</button>`;
     const groups = FREQ.map(([f, l]) => {
       const g = list.filter(t => t.freq === f); if (!g.length) return '';
@@ -554,8 +655,8 @@ const Core = (() => {
     return `<div class="hrow"><h1>✅ المهام</h1></div>
     <div class="qa"><input id="qat" placeholder="＋ اكتب مهمة جديدة واضغط Enter" maxlength="200"><select id="qaf" aria-label="التكرار">${FREQ.map(([f, l]) => `<option value="${f}" ${f === qaFreq ? 'selected' : ''}>${l}</option>`).join('')}</select><button class="btn pri" data-act="qadd">إضافة</button></div>
     <div class="tool"><input type="search" id="tq" placeholder="ابحث في المهام" value="${esc(tf.q)}"></div>
-    <div class="fsel"><select data-fsel="tsort" aria-label="ترتيب"><option value="def"${(tf.sort || 'def') === 'def' ? ' selected' : ''}>ترتيب: الافتراضي</option><option value="prio"${tf.sort === 'prio' ? ' selected' : ''}>ترتيب: الأولوية</option></select><select data-fsel="tfreq" aria-label="التكرار"><option value="all"${tf.freq === 'all' ? ' selected' : ''}>كل التكرارات</option><option value="today"${tf.freq === 'today' ? ' selected' : ''}>النهارده</option>${FREQ.map(([f, l]) => `<option value="${f}"${tf.freq === f ? ' selected' : ''}>${l}</option>`).join('')}</select>${cats.length ? `<select data-fsel="tcat" aria-label="التصنيف"><option value="all">كل التصنيفات</option>${cats.map(c => `<option value="${esc(c)}"${tf.cat === c ? ' selected' : ''}>${esc(c)}</option>`).join('')}</select>` : ''}</div>
-    ${groups || '<div class="empty"><b>📝</b>مفيش مهام هنا. اكتب مهمة في المربع اللي فوق واضغط «إضافة»</div>'}`;
+    <div class="fsel"><select data-fsel="tsort" aria-label="ترتيب"><option value="def"${(tf.sort || 'def') === 'def' ? ' selected' : ''}>ترتيب: الافتراضي</option><option value="prio"${tf.sort === 'prio' ? ' selected' : ''}>ترتيب: الأولوية</option></select><select data-fsel="tfreq" aria-label="التكرار"><option value="all"${tf.freq === 'all' ? ' selected' : ''}>كل التكرارات</option><option value="today"${tf.freq === 'today' ? ' selected' : ''}>النهارده</option><option value="overdue"${tf.freq === 'overdue' ? ' selected' : ''}>المتأخرة</option>${FREQ.map(([f, l]) => `<option value="${f}"${tf.freq === f ? ' selected' : ''}>${l}</option>`).join('')}</select>${cats.length ? `<select data-fsel="tcat" aria-label="التصنيف"><option value="all">كل التصنيفات</option>${cats.map(c => `<option value="${esc(c)}"${tf.cat === c ? ' selected' : ''}>${esc(c)}</option>`).join('')}</select>` : ''}</div>
+    <div id="task-results">${groups || '<div class="empty"><b>📝</b>مفيش مهام هنا. اكتب مهمة في المربع اللي فوق واضغط «إضافة»</div>'}</div>`;
   }
 
   let qs = {};
@@ -575,7 +676,7 @@ const Core = (() => {
     return `<div class="hrow"><h1>${icon} ${title}</h1><button class="btn pri" data-act="add" data-t="${type}">＋ ${T[type].label} جديد</button></div>
     <div class="tool"><input type="search" id="cq" data-k="${key}" placeholder="بحث" value="${esc(q)}"><div class="seg">${[['gallery', '▦'], ['board', '☰'], ['list', '≡'], ['table', '▤']].map(([v, l]) => `<button class="${view === v ? 'on' : ''}" data-act="view" data-t="${type}" data-v="${v}" aria-label="${v}">${l}</button>`).join('')}</div></div>
     ${(() => { const sel = (act, all, cur, opts) => `<select data-fsel="${act}" data-k="${key}" aria-label="${all}"><option value="all">${all}</option>${opts.map(([v, l]) => `<option value="${esc(v)}"${cur === v ? ' selected' : ''}>${l}</option>`).join('')}</select>`; let h = types.length > 1 ? `<select data-fsel="ctype" data-k="${key}" aria-label="النوع">${types.map(t => `<option value="${t}"${t === type ? ' selected' : ''}>${T[t].icon} ${T[t].plural}</option>`).join('')}</select>` : ''; if (stl.length) h += sel('cst', 'كل الحالات', st, stl); if (['book', 'movie', 'cert', 'playlist'].includes(type)) { const gs = [...new Set(catList(catGroup(type)).concat(ofType(type).map(i => i.genre).filter(Boolean)))]; if (gs.length) h += sel('cgn', 'كل الأنواع', gsel, gs.map(g => [g, esc(g)])); } if (['cert', 'playlist'].includes(type)) { const ps = [...new Set(catList('platform').concat(ofType(type).map(i => i.platform).filter(Boolean)))]; if (ps.length) h += sel('cpl', 'كل المنصات', psel, ps.map(g => [g, esc(g)])); } return h ? `<div class="fsel">${h}</div>` : ''; })()}
-    ${body}<button class="fab" data-act="add" data-t="${type}" aria-label="إضافة">+</button>`;
+    <div id="collection-results">${body}</div><button class="fab" data-act="add" data-t="${type}" aria-label="إضافة">+</button>`;
   }
 
   function tableView(items, type) {
@@ -624,7 +725,7 @@ const Core = (() => {
      <div class="box stat"><div class="emo">🔁</div><div><div class="n">${hdone}/${dhs.length}</div><div class="muted">عادات يومية اتعملت</div></div></div>
     </div>
     <h2>📈 نشاط كل يوم</h2><div class="box"><div class="wbars">${days.map(x => `<div class="c"><div class="b" style="height:${Math.round(x.n / maxv * 100)}%;${x.future ? 'opacity:.25' : ''}" title="${x.d}: ${x.n}"></div><div class="lb">${dnames[C.parse(x.d).getDay()]}</div></div>`).join('')}</div></div>
-    <h2>🔥 السلاسل الحالية</h2><div class="box list">${streaks.length ? streaks.map(([n, i]) => `<a class="row" href="#/item/${i.id}"><div class="t"><b>${esc(i.title)}</b><span class="muted">${i.type === 'habit' ? 'عادة' : 'مهمة'}</span></div><span class="chip warn">🔥 ${n}</span></a>`).join('') : '<div class="empty"><b>🌱</b>لسه مفيش سلاسل. علّم عادة أو مهمة النهارده</div>'}</div>`;
+    <h2>🔥 السلاسل الحالية</h2><div class="box list">${streaks.length ? streaks.map(([n, i]) => `<a class="row" href="#/item/${i.id}"><div class="t"><b>${esc(i.title)}</b><span class="muted">${i.type === 'habit' ? 'عادة' : 'مهمة'}</span></div><span class="chip warn">🔥 ${n}</span></a>`).join('') : '<div class="empty"><b>🌱</b>لسه مفيش سلاسل. علّم عادة أو مهمة النهارده</div>'}</div><h2>📝 المراجعة الأسبوعية</h2><a class="btn pri" href="#/review">ابدأ مراجعة الأسبوع</a>`;
   }
   const noon2 = d => new Date(d.getFullYear(), d.getMonth(), d.getDate(), 12);
 
@@ -655,7 +756,7 @@ const Core = (() => {
     const sel = its.filter(x => x[0] === cal.sel && x[1].type !== 'habit').map(x => x[1]);
     const dh2 = ofType('habit').filter(h => h.freq === 'daily');
     const title = first.toLocaleDateString(state.settings.lang === 'en' ? 'en-US' : 'ar-EG-u-nu-latn', { month: 'long', year: 'numeric' });
-    return `<div class="hrow"><h1>📆 التقويم</h1><button class="btn pri" data-act="calplan">＋ خطة في اليوم المحدد</button></div>
+    return `<div class="hrow"><h1>📆 التقويم</h1><span><button class="btn" data-act="icsExport">⬇ ICS</button> <button class="btn pri" data-act="calplan">＋ خطة في اليوم المحدد</button></span></div>
     <div class="calh"><button class="btn" data-act="calnav" data-v="-1" aria-label="الشهر اللي فات">›</button><b>${title}</b><button class="btn" data-act="calnav" data-v="1" aria-label="الشهر الجاي">‹</button></div>
     <div class="cal">${names.map(n => `<div class="hd">${isEn() ? L(n).slice(0, 3) : ({ 'السبت': 'سبت', 'الأحد': 'أحد', 'الاثنين': 'إثنين', 'الثلاثاء': 'ثلاثاء', 'الأربعاء': 'أربعاء', 'الخميس': 'خميس', 'الجمعة': 'جمعة' })[n]}</div>`).join('')}${cells}</div>
     <div class="stat2 muted"><span><i style="color:${KC.plan}">●</i> خطة</span><span><i style="color:${KC.cert}">●</i> امتحان</span><span><i style="color:${KC.task}">●</i> مهمة بموعد</span><span><i style="color:${KC.habit}">●</i> عادة اتعملت</span></div>
@@ -722,8 +823,44 @@ const Core = (() => {
     <p class="muted" style="margin-top:20px">سبيلي v8 · ${state.items.length} عنصر</p>`;
   }
 
+  // ---------- quick capture, more menu and weekly reflection ----------
+  function inboxItems() { state.settings.inbox = Array.isArray(state.settings.inbox) ? state.settings.inbox : []; return state.settings.inbox; }
+  function morePage() {
+    const links = [['#/movies','🎬','الأفلام والمسلسلات'],['#/learning','🎓','التعلّم'],['#/plans','📅','الخطط'],['#/calendar','📆','التقويم'],['#/week','📊','إحصائيات الأسبوع'],['#/review','📝','المراجعة الأسبوعية'],['#/inbox','📥','صندوق الوارد'],['#/goals','🎯','أهداف السنة'],['#/report','📈','التقرير الشهري'],['#/yearplan','🗓','الخطة السنوية'],['#/settings','⚙️','الإعدادات']];
+    return `<h1>☰ المزيد</h1><div class="box list">${links.map(x => `<a class="row" href="${x[0]}"><span style="font-size:22px">${x[1]}</span><b class="t">${x[2]}</b><span class="muted">‹</span></a>`).join('')}</div>`;
+  }
+  function inboxPage() {
+    const items = inboxItems();
+    return `<div class="hrow"><h1>📥 صندوق الوارد</h1><span class="chip">${items.length}</span></div><p class="muted">اجمع أي فكرة أو مهمة بسرعة، ورتّبها لاحقًا.</p><div class="qa"><input id="inbox-input" maxlength="240" placeholder="اكتب أي حاجة عايز تفتكرها…"><button class="btn pri" data-act="inboxAdd">＋ إضافة</button></div><div class="box list">${items.length ? items.slice().reverse().map(x => `<div class="row"><div class="t"><b>${esc(x.text)}</b><span class="muted">${x.created ? dfmt(x.created) : ''}</span></div><button class="btn sm" data-act="inboxTask" data-id="${x.id}">تحويل لمهمة</button><button class="ib2" data-act="inboxDel" data-id="${x.id}" aria-label="حذف">🗑</button></div>`).join('') : '<div class="empty">📭 صندوق الوارد فارغ حاليًا</div>'}</div>`;
+  }
+  function reviewPage() {
+    const ws = C.ymd(C.weekStart(now())); state.settings.weeklyReviews = state.settings.weeklyReviews && typeof state.settings.weeklyReviews === 'object' ? state.settings.weeklyReviews : {};
+    const r = state.settings.weeklyReviews[ws] || {};
+    return `<h1>📝 المراجعة الأسبوعية</h1><p class="muted">الأسبوع الذي يبدأ ${dfmt(ws)}</p><div class="box"><div class="fld"><label for="review-good">إيه اللي مشي كويس الأسبوع ده؟</label><textarea id="review-good" rows="3">${esc(r.good || '')}</textarea></div><div class="fld"><label for="review-hard">إيه اللي كان صعب أو محتاج تحسين؟</label><textarea id="review-hard" rows="3">${esc(r.hard || '')}</textarea></div><div class="fld"><label for="review-next">أهم حاجة هركز عليها الأسبوع الجاي؟</label><textarea id="review-next" rows="3">${esc(r.next || '')}</textarea></div><button class="btn pri" data-act="reviewSave">حفظ المراجعة</button></div>`;
+  }
+  function saveWeeklyReview() { const ws = C.ymd(C.weekStart(now())); state.settings.weeklyReviews = state.settings.weeklyReviews && typeof state.settings.weeklyReviews === 'object' ? state.settings.weeklyReviews : {}; state.settings.weeklyReviews[ws] = { good: ($('#review-good') || {}).value || '', hard: ($('#review-hard') || {}).value || '', next: ($('#review-next') || {}).value || '', updated: Date.now() }; save(); toast('اتحفظت المراجعة الأسبوعية'); }
+  function exportCalendarICS() {
+    const escI = v => String(v || '').replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n');
+    const stamp = d => String(d || '').replace(/-/g, '');
+    const lines = ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Sabeely//Calendar//AR','CALSCALE:GREGORIAN','METHOD:PUBLISH'];
+    calItems().forEach(([date, it], n) => { if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return; lines.push('BEGIN:VEVENT','UID:' + escI((it.id || ('event-' + n)) + '-' + date) + '@sabeely','DTSTAMP:' + new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, ''),'DTSTART;VALUE=DATE:' + stamp(date),'DTEND;VALUE=DATE:' + stamp(C.ymd(C.addDays(C.parse(date), 1))),'SUMMARY:' + escI(it.title || it.type),'DESCRIPTION:' + escI(it.notes || it.type),'END:VEVENT'); });
+    lines.push('END:VCALENDAR'); dlText('sabeely-calendar.ics', lines.join('\r\n'), 'text/calendar;charset=utf-8'); toast('تم تصدير التقويم');
+  }
+  function exportExpensesCSV() {
+    const rows = [['date','amount','category','note','items']];
+    ex().tx.slice().sort((a,b) => String(a.d).localeCompare(String(b.d))).forEach(t => rows.push([t.d || '', mn(t.amt), catName(t.cat), t.note || '', (t.items || []).map(i => `${i.n} x${i.q == null ? 1 : i.q} @${i.p}`).join(' | ')]));
+    const csv = '\uFEFF' + rows.map(r => r.map(v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"').join(',')).join('\r\n'); dlText('sabeely-expenses-' + today() + '.csv', csv, 'text/csv;charset=utf-8'); toast('تم تصدير المشتريات CSV');
+  }
+  function ensureButtonLabels() {
+    document.querySelectorAll('button:not([aria-label])').forEach(b => { const t = (b.textContent || '').trim(); if (!t || (!b.classList.contains('ib') && !b.classList.contains('ib2') && !b.classList.contains('ck') && !b.classList.contains('fab') && !b.dataset.act && !b.dataset.mx)) return; if (/[\u0600-\u06FFa-zA-Z0-9]/i.test(t) && t.length > 1) return; const action = b.dataset.act || b.dataset.mx || ''; const labels = { tick:'تحديد إنجاز المهمة',todo:'تحديد المهمة الفرعية',fav:'تبديل المفضلة',back:'رجوع',calnav:'تغيير الشهر',calsel:'اختيار اليوم',mon:'تغيير الشهر',txedit:'تعديل',txdel:'حذف',inboxDel:'حذف من صندوق الوارد',sgdel:'حذف هدف الادخار' }; b.setAttribute('aria-label', labels[action] || (action ? 'إجراء: ' + action : t || 'زر')); });
+  }
+  const searchTimers = Object.create(null);
+  function debounceSearch(key, fn) { clearTimeout(searchTimers[key]); searchTimers[key] = setTimeout(fn, 180); }
+  function updateOnly(selector, html) { const tmp = document.createElement('div'); tmp.innerHTML = html; const n = tmp.querySelector(selector), old = $(selector); if (n && old) old.innerHTML = n.innerHTML; }
+  function updateTaskResults() { updateOnly('#task-results', tasks()); }
+  function updateCollectionResults(k) { const map = { book: [['book'],'الكتب','📚'], movie: [['movie'],'الأفلام والمسلسلات','🎬'], 'cert+playlist': [['cert','playlist'],'التعلّم','🎓'], plan: [['plan'],'الخطط والإجازات','📅'] }; const v = map[k]; if (v) updateOnly('#collection-results', collection(v[0], v[1], v[2])); }
   // ---------- router ----------
-  const NAV = [['#/', '🏠', 'الرئيسية'], ['#/tasks', '✅', 'المهام'], ['#/habits', '🔁', 'العادات'], ['#/books', '📚', 'الكتب'], ['#/movies', '🎬', 'الأفلام'], ['#/learning', '🎓', 'التعلّم'], ['#/plans', '📅', 'الخطط'], ['#/money', '💰', 'المصاريف'], ['#/calendar', '📆', 'التقويم'], ['#/report', '📈', 'التقرير الشهري'], ['#/week', '📊', 'الأسبوع'], ['#/goals', '🎯', 'أهداف السنة'], ['#/yearplan', '🗓', 'الخطة السنوية'], ['#/settings', '⚙️', 'الإعدادات']];
+  const NAV = [['#/', '🏠', 'الرئيسية'], ['#/tasks', '✅', 'المهام'], ['#/more', '☰', 'المزيد'], ['#/inbox', '📥', 'صندوق الوارد'], ['#/review', '📝', 'المراجعة الأسبوعية'], ['#/habits', '🔁', 'العادات'], ['#/books', '📚', 'الكتب'], ['#/movies', '🎬', 'الأفلام'], ['#/learning', '🎓', 'التعلّم'], ['#/plans', '📅', 'الخطط'], ['#/money', '💰', 'المصاريف'], ['#/calendar', '📆', 'التقويم'], ['#/report', '📈', 'التقرير الشهري'], ['#/week', '📊', 'الأسبوع'], ['#/goals', '🎯', 'أهداف السنة'], ['#/yearplan', '🗓', 'الخطة السنوية'], ['#/settings', '⚙️', 'الإعدادات']];
   /*FEATURES*/
   /*MONEY*/
   const mx = { tab: 'sum', m: null, draft: null, fcat: '', pasteTxt: '', jsonTxt: '' };
@@ -749,11 +886,12 @@ const Core = (() => {
   const lineTot = i => r2(mn(i.q == null || i.q === '' ? 1 : i.q) * mn(i.p));
   const itemsSum = a => r2((a || []).reduce((s, i) => s + lineTot(i), 0));
   function mxCalc(key) {
+    const ck = 'mxCalc|' + dataRevision + '|' + key; if (summaryCache.has(ck)) return summaryCache.get(ck);
     const e = ex(); const inM = d => d && String(d).slice(0, 7) === key; let sal = 0, oth = 0, lin = 0, lout = 0, spent = 0; const byCat = {};
     e.inc.forEach(i => { if (inM(i.d)) { if (i.kind === 'salary') sal += mn(i.amt); else oth += mn(i.amt); } });
     e.loans.forEach(l => { if (inM(l.d)) { if (l.dir === 'taken') { if (l.inc) lin += mn(l.amt); } else lout += mn(l.amt); } (l.pays || []).forEach(p => { if (inM(p.d)) { if (l.dir === 'taken') lout += mn(p.amt); else lin += mn(p.amt); } }); });
     e.tx.forEach(t => { if (inM(t.d)) { spent += mn(t.amt); byCat[t.cat] = (byCat[t.cat] || 0) + mn(t.amt); } });
-    return { sal: r2(sal), oth: r2(oth), lin: r2(lin), lout: r2(lout), spent: r2(spent), byCat, bal: r2(sal + oth + lin - lout - spent) };
+    const result = { sal: r2(sal), oth: r2(oth), lin: r2(lin), lout: r2(lout), spent: r2(spent), byCat, bal: r2(sal + oth + lin - lout - spent) }; summaryCache.set(ck, result); return result;
   }
   const loanLeft = l => r2(mn(l.amt) - (l.pays || []).reduce((s, p) => s + mn(p.amt), 0));
   function mxTabs() {
@@ -770,6 +908,17 @@ const Core = (() => {
     const fab = (mx.tab === 'sum' || mx.tab === 'buy') ? `<button class="fab" data-mx="buyadd" aria-label="${X('إضافة مشتريات', 'Add purchase')}">＋</button>` : '';
     return `<h1>💰 ${X('المصاريف', 'Expenses')}</h1>${mxTabs()}${(mx.tab === 'sum' || mx.tab === 'buy' || mx.tab === 'loans' && false) ? mxMonthBar() : ''}${body}${fab}`;
   }
+  function monthCompareCard() {
+    const k = curM(), prev = mshift(k, -1), a = mxCalc(k), b = mxCalc(prev);
+    const delta = (x, y) => { const d = r2(x - y); const pct = y ? Math.round(d / Math.abs(y) * 100) : null; return { d, pct, up: d > 0 }; };
+    const sd = delta(a.spent, b.spent), id = delta(a.sal + a.oth, b.sal + b.oth);
+    const fmtDelta = z => `${z.d > 0 ? '+' : ''}${fm(z.d)} (${z.pct == null ? '—' : (z.pct > 0 ? '+' : '') + z.pct + '%'})`;
+    return `<h2>📊 ${X('مقارنة بالشهر السابق', 'Compared with last month')}</h2><div class="box"><div class="grid g2"><div><span class="muted">${X('المصروفات', 'Spending')}</span><b style="display:block">${money(a.spent)}</b><small class="muted">${X('السابق', 'Previous')}: ${fm(b.spent)} · ${fmtDelta(sd)}</small></div><div><span class="muted">${X('الدخل', 'Income')}</span><b style="display:block">${money(a.sal + a.oth)}</b><small class="muted">${X('السابق', 'Previous')}: ${fm(b.sal + b.oth)} · ${fmtDelta(id)}</small></div></div></div>`;
+  }
+  function savingsGoalsHtml() {
+    const goals = Array.isArray(ex().savingsGoals) ? ex().savingsGoals : [];
+    return `<h2>🎯 ${X('أهداف الادخار', 'Savings goals')} <button class="btn sm" data-mx="sgadd">＋ ${X('هدف', 'Goal')}</button></h2>${goals.length ? `<div class="box list">${goals.map(g => { const pct = g.target > 0 ? Math.min(100, Math.round((g.saved || 0) / g.target * 100)) : 0; return `<div class="row"><div class="t"><b>${esc(g.name)}</b><span class="muted">${money(g.saved || 0)} / ${money(g.target || 0)}</span><div class="bar"><i style="width:${pct}%"></i></div></div><button class="btn sm" data-mx="sgaddfund" data-a="${g.id}">＋</button><button class="ib2" data-mx="sgdel" data-a="${g.id}" aria-label="${X('حذف الهدف', 'Delete goal')}">🗑</button></div>`; }).join('')}</div>` : `<p class="muted">${X('أضف هدفًا وابدأ متابعة المبلغ الذي تدّخره.', 'Add a goal to track your savings.')}</p>`}`;
+  }
   function mxSum() {
     const e = ex(), k = curM(), c = mxCalc(k); const inc = c.sal + c.oth;
     const pct = inc > 0 ? Math.min(100, Math.round((c.spent + c.lout - c.lin) / inc * 100)) : 0;
@@ -782,7 +931,9 @@ const Core = (() => {
       <div class="mxgrid"><div><span class="muted">${X('المرتب', 'Salary')}</span><b>${money(c.sal)}</b></div><div><span class="muted">${X('دخل تاني', 'Other income')}</span><b>${money(c.oth)}</b></div><div><span class="muted">${X('مشتريات', 'Purchases')}</span><b>${money(c.spent)}</b></div><div><span class="muted">${X('سلف (داخل/خارج)', 'Loans (in/out)')}</span><b><bdi>${fm(c.lin)}</bdi> / <bdi>${fm(c.lout)}</bdi></b></div></div>
       ${c.bal < 0 ? `<p class="muted" style="color:var(--bad)">⚠️ ${X('صرفت أكتر من الدخل المسجّل في الشهر ده', 'You spent more than the income recorded this month')}</p>` : ''}</div>
       ${alertHtml(mxAlertItems(k))}
-      <div class="big-btns"><button class="btn pri" data-mx="incadd" data-a="salary">＋ ${X('مرتب', 'Salary')}</button><button class="btn" data-mx="incadd" data-a="other">＋ ${X('دخل تاني', 'Other income')}</button><button class="btn" data-mx="buyadd">＋ ${X('مشتريات', 'Purchase')}</button></div>
+      ${monthCompareCard()}
+      ${savingsGoalsHtml()}
+      <div class="big-btns"><button class="btn" data-mx="csv">⬇ ${X('تصدير CSV', 'Export CSV')}</button><button class="btn pri" data-mx="incadd" data-a="salary">＋ ${X('مرتب', 'Salary')}</button><button class="btn" data-mx="incadd" data-a="other">＋ ${X('دخل تاني', 'Other income')}</button><button class="btn" data-mx="buyadd">＋ ${X('مشتريات', 'Purchase')}</button></div>
       ${incRows.length ? `<h2>${X('الدخل', 'Income')}</h2><div class="box">${incRows.map(i => `<div class="row"><div class="t"><b>${money(i.amt)}</b><span class="muted">${i.kind === 'salary' ? X('مرتب', 'Salary') : X('دخل تاني', 'Other')} · ${mdf(i.d)}${i.note ? ' · ' + esc(i.note) : ''}</span></div><span class="ra"><button class="ib2" data-mx="incedit" data-a="${i.id}" aria-label="${X('تعديل', 'Edit')}">✏️</button><button class="ib2" data-mx="incdel" data-a="${i.id}" aria-label="${X('حذف', 'Delete')}">🗑</button></span></div>`).join('')}</div>` : `<p class="muted">${X('لسه مسجلتش مرتب الشهر ده. اضغط "＋ مرتب".', 'No salary recorded this month. Tap "＋ Salary".')}</p>`}
       <h2>${X('حسب التصنيف', 'By category')} <button class="btn sm" data-mx="budget" style="float:inline-end">🎯 ${X('ميزانيات', 'Budgets')}</button></h2>${cats.length ? `<div class="box">${cats.map(([ck, v]) => `<div class="mxcat"><span>${catIcon(ck)} ${esc(catName(ck))}</span><span><bdi>${fm(v)}</bdi>${bd[ck] ? ' / <bdi>' + fm(bd[ck]) + '</bdi>' : ''} <small class="muted">${bd[ck] ? Math.round(v / bd[ck] * 100) : (c.spent ? Math.round(v / c.spent * 100) : 0)}%</small></span><div class="bar"><i style="width:${Math.min(100, Math.round(v / (bd[ck] || mxv) * 100))}%;${bd[ck] && v >= bd[ck] ? 'background:var(--bad)' : bd[ck] && v >= bd[ck] * .8 ? 'background:var(--warn)' : ''}"></i></div></div>`).join('')}</div>` : `<p class="muted">${X('مفيش مشتريات في الشهر ده.', 'No purchases this month.')}</p>`}
       ${recent.length ? `<h2>${X('آخر المشتريات', 'Latest purchases')}</h2><div class="box">${recent.map(txRow).join('')}</div>` : ''}
@@ -797,24 +948,29 @@ const Core = (() => {
     const its = t.items && t.items.length ? t.items : null;
     return `<div class="row" style="align-items:flex-start"><div class="t"><b>${money(t.amt)}</b> <span class="chip">${catIcon(t.cat)} ${esc(catName(t.cat))}</span>${t.fx ? ` <span class="chip ac">${X('ثابت', 'Fixed')}</span>` : ''}${its ? `<div class="itn"><b>${its.slice(0, 2).map(i => esc(i.n) + (its.length === 1 && (mn(i.q || 1) !== 1 || i.u) ? ' <span style="font-weight:400;opacity:.65;white-space:nowrap">· ' + fm(mn(i.q || 1)) + (i.u ? ' ' + esc(i.u) : '') + '</span>' : '')).join('، ')}${its.length > 2 ? ' +' + (its.length - 2) : ''}</b></div>` : ''}<span class="muted">${mdf(t.d)}${t.note ? ' · ' + esc(t.note) : ''}${its && its.length > 1 ? ' · ' + its.length + ' ' + X('صنف', 'items') : ''}</span>${its && its.length > 1 ? `<details><summary class="muted">${X('الأصناف', 'Items')}</summary>${its.map(i => `<div class="muted">${esc(i.n)} · ${fm(mn(i.q || 1))} × ${fm(mn(i.p))} = <bdi>${fm(lineTot(i))}</bdi></div>`).join('')}</details>` : ''}</div>${ra2('tx', t.id)}</div>`;
   }
-  function mxBuy() {
+  function mxBuyResults() {
     const e = ex(), k = curM(); const cats = [...new Set(e.tx.filter(t => String(t.d).slice(0, 7) === k).map(t => t.cat))];
     let l = e.tx.filter(t => String(t.d).slice(0, 7) === k && (!mx.fcat || t.cat === mx.fcat)).sort((a, b) => a.d < b.d ? 1 : a.d > b.d ? -1 : 0);
-    const tot = r2(l.reduce((s, t) => s + mn(t.amt), 0));
-    return `${cats.length > 1 ? `<div class="chips"><button class="${!mx.fcat ? 'on' : ''}" data-mx="fcat" data-a="">${X('الكل', 'All')}</button>${cats.map(c => `<button class="${mx.fcat === c ? 'on' : ''}" data-mx="fcat" data-a="${esc(c)}">${catIcon(c)} ${esc(catName(c))}</button>`).join('')}</div>` : ''}
-    <div class="box">${l.length ? l.map(txRow).join('') + `<div class="row"><div class="t"><b>${X('الإجمالي', 'Total')}: ${money(tot)}</b></div></div>` : `<p class="muted">${X('مفيش مشتريات في الشهر ده. اضغط ＋ أو سجّل فاتورة.', 'No purchases this month. Tap ＋ or record a receipt.')}</p>`}</div>${mxCompare()}`;
+    const query = normN(mx.buyq || '');
+    l = l.filter(t => !query || normN([t.note, catName(t.cat), ...(t.items || []).map(i => i.n)].join(' ')).includes(query));
+    const tot = r2(l.reduce((sum, t) => sum + mn(t.amt), 0));
+    return `${cats.length > 1 ? `<div class="chips"><button class="${!mx.fcat ? 'on' : ''}" data-mx="fcat" data-a="">${X('الكل', 'All')}</button>${cats.map(c => `<button class="${mx.fcat === c ? 'on' : ''}" data-mx="fcat" data-a="${esc(c)}">${catIcon(c)} ${esc(catName(c))}</button>`).join('')}</div>` : ''}<div class="box">${l.length ? l.map(txRow).join('') + `<div class="row"><div class="t"><b>${X('الإجمالي', 'Total')}: ${money(tot)}</b></div></div>` : `<p class="muted">${X('مفيش مشتريات في الشهر ده. اضغط ＋ أو سجّل فاتورة.', 'No purchases this month. Tap ＋ or record a receipt.')}</p>`}</div>`;
+  }
+  function mxBuy() {
+    return `<div class="tool"><input type="search" data-mxi="buyq" value="${esc(mx.buyq || '')}" placeholder="${X('ابحث في مشتريات الشهر…', 'Search this month’s purchases…')}" aria-label="${X('بحث في المشتريات', 'Search purchases')}"><button class="btn sm" data-mx="csv">⬇ CSV</button></div><div id="buy-results">${mxBuyResults()}</div>${mxCompare()}`;
   }
   // ---------- top items report ----------
   const UNITS = ['كجم', 'جرام', 'لتر', 'علبة', 'كيس', 'عبوة', 'قطعة', 'زجاجة', 'كرتونة'];
   function itemStats(days) {
+    const ck = 'itemStats|' + dataRevision + '|' + days; if (summaryCache.has(ck)) return summaryCache.get(ck).map(o => Object.assign({}, o, { by: Object.assign({}, o.by) }));
     const t0 = today(), from = days > 0 ? C.ymd(new Date(C.parse(t0).getTime() - days * 864e5)) : '';
     const m = {};
     ex().tx.forEach(t => { if (!t.d || (from && t.d < from)) return; (t.items || []).forEach(i => { const nm = normN(i.n); const q = mn(i.q == null || i.q === '' ? 1 : i.q), p = mn(i.p); if (!nm || !(q > 0)) return; const u = String(i.u || '').trim(); const k = nm + '|' + normN(u); const o = m[k] = m[k] || { n: i.n, u, by: {}, spent: 0, qty: 0 }; o.by[t.d] = (o.by[t.d] || 0) + q; o.qty += q; o.spent += q * p; }); });
-    return Object.values(m).map(o => {
+    const result = Object.values(m).map(o => {
       const ds = Object.keys(o.by).sort(); o.times = ds.length; o.last = ds[ds.length - 1];
       if (ds.length >= 2) { const span = C.daysBetween(C.parse(ds[0]), C.parse(o.last)); const qBefore = ds.slice(0, -1).reduce((s, d) => s + o.by[d], 0); o.gap = span / (ds.length - 1); o.perDay = span > 0 ? qBefore / span : 0; o.next = C.ymd(new Date(C.parse(o.last).getTime() + Math.round(o.gap) * 864e5)); }
       o.avgP = o.qty > 0 ? o.spent / o.qty : 0; return o;
-    });
+    }); summaryCache.set(ck, result); return result.map(o => Object.assign({}, o, { by: Object.assign({}, o.by) }));
   }
   function mxItems() {
     const per = mx.ip == null ? 90 : mx.ip, srt = mx.is || 'times';
@@ -841,7 +997,7 @@ const Core = (() => {
       <div class="muted">${X('الأرخص', 'Cheapest')}: <b><bdi>${fm(lo.p)}</bdi></b> (${mdf(lo.d)}${lo.s ? ' · ' + esc(lo.s) : ''}) · ${X('الأغلى', 'Highest')}: <b><bdi>${fm(hi.p)}</bdi></b> (${mdf(hi.d)}${hi.s ? ' · ' + esc(hi.s) : ''})</div>
       ${o.e.slice().reverse().map(x => `<div class="muted">${mdf(x.d)} · <bdi>${fm(x.p)}</bdi>${x.s ? ' · ' + esc(x.s) : ''}</div>`).join('')}</details>`;
     }).join('');
-    return `<h2>💲 ${X('مقارنة أسعار نفس الصنف', 'Price comparison')}</h2><div class="box"><input type="search" data-mxi="cq" value="${esc(mx.cq || '')}" placeholder="${X('دوّر على صنف…', 'Search an item…')}" style="width:100%">${rows || `<p class="muted">${X('بتظهر هنا الأصناف اللي اتسجلت في فاتورتين أو أكتر بأسعار (سجّل الأصناف من الفواتير أو القوائم).', 'Items bought at least twice with prices show up here (record items from receipts or lists).')}</p>`}</div>`;
+    return `<h2>💲 ${X('مقارنة أسعار نفس الصنف', 'Price comparison')}</h2><div class="box"><input type="search" data-mxi="cq" value="${esc(mx.cq || '')}" placeholder="${X('دوّر على صنف…', 'Search an item…')}" style="width:100%"><div id="mx-price-results">${rows || `<p class="muted">${X('بتظهر هنا الأصناف اللي اتسجلت في فاتورتين أو أكتر بأسعار (سجّل الأصناف من الفواتير أو القوائم).', 'Items bought at least twice with prices show up here (record items from receipts or lists).')}</p>`}</div></div>`;
   }
   // ---------- budgets ----------
   function budgetSheet() {
@@ -1163,6 +1319,10 @@ const Core = (() => {
     const cf = m => window.confirm(m);
     switch (a) {
       case 'tab': mx.tab = v; render(); break;
+      case 'csv': exportExpensesCSV(); break;
+      case 'sgadd': { const name = window.prompt(X('اسم هدف الادخار', 'Savings goal name')); if (!name || !name.trim()) break; const target = mn(window.prompt(X('المبلغ المستهدف بالجنيه', 'Target amount in EGP'), '1000')); if (!(target > 0)) { toast('اكتب مبلغًا صحيحًا'); break; } e.savingsGoals = Array.isArray(e.savingsGoals) ? e.savingsGoals : []; e.savingsGoals.push({ id: uid(), name: name.trim().slice(0,80), target, saved: 0, created: today() }); save(); render(); break; }
+      case 'sgaddfund': { const g = (e.savingsGoals || []).find(x => x.id === v); if (!g) break; const amt = mn(window.prompt(X('المبلغ المضاف للادخار', 'Amount added to savings'), '')); if (!(amt > 0)) break; g.saved = r2(mn(g.saved) + amt); save(); render(); break; }
+      case 'sgdel': if (cf(X('تحذف هدف الادخار؟', 'Delete savings goal?'))) { addTombstone('savingsGoals', v); e.savingsGoals = (e.savingsGoals || []).filter(x => x.id !== v); save(); render(); } break;
       case 'iper': mx.ip = +v; render(); break;
       case 'isort': mx.is = v; render(); break;
       case 'mon': mx.m = mshift(curM(), +v); render(); break;
@@ -1223,7 +1383,8 @@ const Core = (() => {
   document.addEventListener('input', e => {
     const el = e.target, k = el.dataset && el.dataset.mxi; if (!k) return; const p = k.split('|');
     if (k === 'pt') mx.pasteTxt = el.value; else if (k === 'jt') mx.jsonTxt = el.value;
-    else if (k === 'cq') { mx.cq = el.value; const pos = el.selectionStart; render(); const n = $('[data-mxi=cq]'); if (n) { n.focus(); try { n.setSelectionRange(pos, pos); } catch (x) { } } }
+    else if (k === 'cq') { mx.cq = el.value; debounceSearch('mx-price', () => updateOnly('#mx-price-results', mxCompare())); }
+    else if (k === 'buyq') { mx.buyq = el.value; debounceSearch('mx-buy', () => updateOnly('#buy-results', `<div id="buy-results">${mxBuyResults()}</div>`)); }
     else if (mx.draft) { const d = mx.draft; if (k === 'dd') d.d = el.value; else if (k === 'ds') d.store = el.value; else if (k === 'dc') d.cat = el.value; else if (p[0] === 'dn') d.items[+p[1]].n = el.value; else if (p[0] === 'dq') d.items[+p[1]].q = el.value; else if (p[0] === 'dp') d.items[+p[1]].p = el.value; updDraft(); }
   });
   document.addEventListener('change', e => {
@@ -1358,7 +1519,7 @@ const Core = (() => {
     return `<h2>📲 ${X('التثبيت والعمل بدون نت', 'Install and offline')}</h2><div class="box"><p class="muted">${X('الملف نفسه شغال بدون نت لأنه ملف واحد والبيانات على جهازك. الاستثناءات: قراءة الفاتورة بالكاميرا وأغلفة الكتب من النت بتحتاج اتصال. التثبيت كأيقونة على الشاشة الرئيسية بيحتاج إن الصفحة تكون مرفوعة على رابط https مع ملف sw.js جنبها، ومينفعش من ملف محلي.', 'The file itself works offline because it is one file and the data lives on your device. Exceptions: camera receipt reading and book covers need internet. Installing as a home-screen icon needs the page to be hosted at an https link with sw.js next to it, it cannot work from a local file.')}</p><p class="muted">${st}</p>
     <div class="big-btns">${pw.prompt ? `<button class="btn pri" data-mx="pwainstall">📲 ${X('ثبّت التطبيق', 'Install app')}</button>` : ''}<button class="btn" data-mx="swdl">⬇️ ${X('نزّل ملف sw.js', 'Download sw.js')}</button></div></div>`;
   }
-  function dlText(name, txt, type) { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([txt], { type: type || 'text/plain' })); a.download = name; document.body.appendChild(a); a.click(); a.remove(); }
+  function dlText(name, txt, type) { const a = document.createElement('a'), url = URL.createObjectURL(new Blob([txt], { type: type || 'text/plain' })); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 30000); }
   function extrasClick(b) {
     const a = b.dataset.mx, v = b.dataset.a;
     switch (a) {
@@ -1677,6 +1838,9 @@ const EN = {'د':'m','س':'h','ص':'p','و':'&',
     else if (h === '#/tasks') html = tasks();
     else if (h === '#/habits') html = habits();
     else if (h === '#/week') html = week();
+    else if (h === '#/more') html = morePage();
+    else if (h === '#/inbox') html = inboxPage();
+    else if (h === '#/review') html = reviewPage();
     else if (h === '#/books') html = collection(['book'], 'الكتب', '📚');
     else if (h === '#/movies') html = collection(['movie'], 'الأفلام والمسلسلات', '🎬');
     else if (h === '#/learning') html = collection(['cert', 'playlist'], 'التعلّم', '🎓');
@@ -1690,8 +1854,9 @@ const EN = {'د':'m','س':'h','ص':'p','و':'&',
     else { html = dashboard() + mxMini(); cur = '#/'; }
     $('#view').innerHTML = html;
     if (h === '#/money') updDraft();
-    if (!m && !['#/settings', '#/money', '#/report', '#/week', '#/goals', '#/yearplan', '#/tasks'].includes(cur) && !$('#view .fab')) { const fb = document.createElement('button'); fb.className = 'fab'; fb.dataset.act = 'add'; if (cur === '#/tasks') fb.dataset.t = 'task'; if (cur === '#/habits') fb.dataset.t = 'habit'; fb.setAttribute('aria-label', 'إضافة'); fb.textContent = '+'; $('#view').appendChild(fb); }
-    document.querySelectorAll('[data-nav]').forEach(a => a.classList.toggle('on', a.getAttribute('href') === cur));
+    if (!m && !['#/settings', '#/money', '#/report', '#/week', '#/goals', '#/yearplan', '#/tasks', '#/more', '#/inbox', '#/review'].includes(cur) && !$('#view .fab')) { const fb = document.createElement('button'); fb.className = 'fab'; fb.dataset.act = 'add'; if (cur === '#/tasks') fb.dataset.t = 'task'; if (cur === '#/habits') fb.dataset.t = 'habit'; fb.setAttribute('aria-label', 'إضافة'); fb.textContent = '+'; $('#view').appendChild(fb); }
+    document.querySelectorAll('[data-nav]').forEach(a => a.classList.toggle('on', a.getAttribute('href') === cur || (a.closest('.tabs') && a.getAttribute('href') === '#/more' && !['#/','#/tasks','#/habits','#/books','#/money'].includes(cur))));
+    ensureButtonLabels();
     document.body.classList.remove('menu');
     if (m) { const el = $('#cfile'); if (el) el.onchange = onCoverFile; }
     const ii = $('#ifile'); if (ii) ii.onchange = onImportFile;
@@ -1700,7 +1865,7 @@ const EN = {'د':'m','س':'h','ص':'p','و':'&',
   function go(h) { if (location.hash === h) render(); else location.hash = h; }
 
   // ---------- add form ----------
-  function sheet(html) { closeSheet(); const s = document.createElement('div'); s.className = 'sheet'; s.id = 'sheet'; s.setAttribute('role', 'dialog'); s.setAttribute('aria-modal', 'true'); s.__prev = document.activeElement; s.innerHTML = `<div>${html}</div>`; s.addEventListener('click', e => { if (e.target === s) closeSheet(); }); document.body.appendChild(s); return s; }
+  function sheet(html) { closeSheet(); const s = document.createElement('div'); s.className = 'sheet'; s.id = 'sheet'; s.setAttribute('role', 'dialog'); s.setAttribute('aria-modal', 'true'); s.__prev = document.activeElement; s.innerHTML = `<div>${html}</div>`; s.addEventListener('click', e => { if (e.target === s) closeSheet(); }); document.body.appendChild(s); ensureButtonLabels(); return s; }
   function closeSheet() { const s = $('#sheet'); if (s) { const pv = s.__prev; s.remove(); try { if (pv && pv.focus && document.contains(pv)) pv.focus(); } catch (e) { } } if (pomo) { pomo.run = false; } }
   function addChooser() { sheet(`<h3>إضافة جديد</h3><div class="types">${Object.entries(T).map(([k, v]) => `<button data-act="add" data-t="${k}">${v.icon}<br>${v.label}</button>`).join('')}<button data-act="tpls">📋<br>قوالب جاهزة</button></div>`); }
   function addForm(type, preset) {
@@ -1855,7 +2020,7 @@ const EN = {'د':'m','س':'h','ص':'p','و':'&',
     const a = b.dataset.act, id = b.dataset.id, d = now();
     const it = id && find(id);
     switch (a) {
-      case 'tick': C.toggleTask(state, it, d); save(); render(); break;
+      case 'tick': C.toggleTask(state, it, d); save(); if ((location.hash || '#/') === '#/tasks') updateTaskResults(); else render(); break;
       case 'bump': {
         const dl = +b.dataset.d;
         if (it.type === 'playlist') C.bump(it, 'watched', 'total', dl); else C.bump(it, 'read', 'pages', dl);
@@ -1872,6 +2037,11 @@ const EN = {'د':'m','س':'h','ص':'p','و':'&',
       case 'fav': it.fav = !it.fav; save(); render(); break;
       case 'back': if (history.length > 1) history.back(); else go('#/'); break;
       case 'qadd': quickAdd(); break;
+      case 'inboxAdd': case 'inboxAddQuick': { const el = a === 'inboxAddQuick' ? $('#inbox-quick') : $('#inbox-input'); const text = el && el.value.trim(); if (!text) { if (el) el.focus(); break; } inboxItems().push({ id: uid(), text, created: C.ymd(now()) }); save(); toast('اتضافت لصندوق الوارد'); render(); break; }
+      case 'inboxDel': { addTombstone('inbox', id); state.settings.inbox = inboxItems().filter(x => x.id !== id); save(); render(); break; }
+      case 'inboxTask': { const x = inboxItems().find(z => z.id === id); if (!x) break; addTombstone('inbox', id); state.items.push(Object.assign({ id: uid(), type: 'task', title: x.text, created: C.ymd(now()), todos: [], notes: '', done: {} }, DEFAULTS.task, { freq: 'once', due: C.ymd(now()) })); state.settings.inbox = inboxItems().filter(z => z.id !== id); save(); toast('اتحولت لمهمة'); go('#/tasks'); break; }
+      case 'reviewSave': saveWeeklyReview(); break;
+      case 'icsExport': exportCalendarICS(); break;
       case 'qhadd': quickAddHabit(); break;
       case 'cpl': qs[b.dataset.k] = Object.assign(qs[b.dataset.k] || {}, { pl: b.dataset.v }); render(); break;
       case 'cgn': qs[b.dataset.k] = Object.assign(qs[b.dataset.k] || {}, { g: b.dataset.v }); render(); break;
@@ -1965,15 +2135,16 @@ const EN = {'د':'m','س':'h','ص':'p','و':'&',
   document.addEventListener('input', e => {
     const el = e.target;
     if (el.id === 'notes') { const it = find(el.dataset.id); if (it) { it.notes = el.value; clearTimeout(window.__nt); window.__nt = setTimeout(save, 300); } }
-    if (el.id === 'tq') { tf.q = el.value; const p = el.selectionStart; render(); const n = $('#tq'); n.focus(); n.setSelectionRange(p, p); }
-    if (el.id === 'cq') { const k = el.dataset.k; qs[k] = Object.assign(qs[k] || {}, { q: el.value }); const p = el.selectionStart; render(); const n = $('#cq'); n.focus(); n.setSelectionRange(p, p); }
-    if (el.id === 'gq') { const q = el.value.trim().toLowerCase(); const box = $('#gres'); if (!q) { box.innerHTML = ''; return; } const r = state.items.filter(i => (i.title + ' ' + (i.author || '') + ' ' + (i.code || '') + ' ' + (i.cat || '') + ' ' + (i.notes || '')).toLowerCase().includes(q)).slice(0, 8); const xr = mxSearch(q); box.innerHTML = `<div class="box list" style="margin-top:8px">${r.length || xr ? r.map(rowItem).join('') + xr : '<div class="empty">مفيش نتائج</div>'}</div>`; }
+    if (el.id === 'tq') { tf.q = el.value; debounceSearch('tasks', updateTaskResults); }
+    if (el.id === 'cq') { const k = el.dataset.k; qs[k] = Object.assign(qs[k] || {}, { q: el.value }); debounceSearch('collection-' + k, () => updateCollectionResults(k)); }
+    if (el.id === 'gq') { debounceSearch('global', () => { const q = el.value.trim().toLowerCase(); const box = $('#gres'); if (!box) return; if (!q) { box.innerHTML = ''; return; } const r = state.items.filter(i => (i.title + ' ' + (i.author || '') + ' ' + (i.code || '') + ' ' + (i.cat || '') + ' ' + (i.notes || '')).toLowerCase().includes(q)).slice(0, 8); const xr = mxSearch(q); box.innerHTML = `<div class="box list" style="margin-top:8px">${r.length || xr ? r.map(rowItem).join('') + xr : '<div class="empty">مفيش نتائج</div>'}</div>`; }); }
     if (el.id === 'sname') { state.settings.name = el.value; save(); }
   });
   document.addEventListener('keydown', e => {
     if (e.key === 'Enter' && e.target.id === 'newtodo') { const id = location.hash.split('/')[2]; const it = find(id); const v = e.target.value.trim(); if (it && v) { it.todos = it.todos || []; it.todos.push({ t: v, d: false }); save(); render(); $('#newtodo').focus(); } }
     if (e.key === 'Enter' && e.target.id && e.target.id.startsWith('newcat-')) catAdd(e.target.id.slice(7));
     if (e.key === 'Enter' && e.target.id === 'qat') quickAdd();
+    if (e.key === 'Enter' && (e.target.id === 'inbox-input' || e.target.id === 'inbox-quick')) { e.preventDefault(); const b = e.target.id === 'inbox-quick' ? document.querySelector('[data-act=\"inboxAddQuick\"]') : document.querySelector('[data-act=\"inboxAdd\"]'); if (b) b.click(); }
     if (e.key === 'Enter' && e.target.id === 'qah') quickAddHabit();
     if (e.key === 'Enter' && e.target.id === 'newquote') { const id2 = location.hash.split('/')[2]; const it2 = find(id2); const v2 = e.target.value.trim(); if (it2 && v2) { it2.quotes = it2.quotes || []; it2.quotes.push({ t: v2 }); save(); render(); } }
     if (e.key === 'Enter' && e.target.id === 'f-title') { const b = $('#sheet [data-act=create]'); if (b) create(b.dataset.t); }
@@ -1991,7 +2162,7 @@ const EN = {'د':'m','س':'h','ص':'p','و':'&',
     if (ev.key !== KEY || !ev.newValue) return;
     try {
       const v = C.validate(JSON.parse(ev.newValue)); if (!v) return;
-      state = v; const ae = document.activeElement;
+      state = v; dataRevision++; summaryCache.clear(); const ae = document.activeElement;
       if (!$('#sheet') && !(ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName))) render();
     } catch (e) { }
   });
@@ -2041,8 +2212,9 @@ const EN = {'د':'m','س':'h','ص':'p','و':'&',
     const dead = new Set(ts.filter(x => x && typeof x.kind === 'string' && typeof x.id === 'string').map(x => x.kind + '|' + x.id));
     data.items = (data.items || []).filter(x => !dead.has('item|' + x.id));
     data.log = (data.log || []).filter(x => !dead.has('item|' + x.id));
+    if (Array.isArray(s.inbox)) s.inbox = s.inbox.filter(x => !dead.has('inbox|' + x.id));
     if (data.exp) {
-      ['tx','inc','loans','lists','fixed','errands','errTpl'].forEach(k => { if (Array.isArray(data.exp[k])) data.exp[k] = data.exp[k].filter(x => !dead.has(k + '|' + x.id)); });
+      ['tx','inc','loans','lists','fixed','errands','errTpl','savingsGoals'].forEach(k => { if (Array.isArray(data.exp[k])) data.exp[k] = data.exp[k].filter(x => !dead.has(k + '|' + x.id)); });
       (data.exp.loans || []).forEach(x => { if (Array.isArray(x.pays)) x.pays = x.pays.filter(p => !dead.has('pays|' + p.id)); });
       (data.exp.lists || []).forEach(x => { if (Array.isArray(x.items)) x.items = x.items.filter(i => !dead.has('listitems|' + i.id)); });
     }
@@ -2052,7 +2224,10 @@ const EN = {'د':'m','س':'h','ص':'p','و':'&',
     const sa = a.settings || {}, sb = b.settings || {};
     const ts = (Array.isArray(sa._tombstones) ? sa._tombstones : []).concat(Array.isArray(sb._tombstones) ? sb._tombstones : []);
     const tm = new Map(); ts.filter(x => x && typeof x.kind === 'string' && typeof x.id === 'string').forEach(x => tm.set(x.kind + '|' + x.id, x));
+    const dead = new Set([...tm.values()].map(x => x.kind + '|' + x.id));
     const settings = Object.assign({}, sb, sa, { _tombstones: [...tm.values()] });
+    if (Array.isArray(sa.inbox) || Array.isArray(sb.inbox)) { const im = new Map(); (sa.inbox || []).forEach(x => im.set(x.id, x)); (sb.inbox || []).forEach(x => { if (!im.has(x.id)) im.set(x.id, x); }); settings.inbox = [...im.values()].filter(x => !dead.has('inbox|' + x.id)); }
+    if (sa.weeklyReviews || sb.weeklyReviews) settings.weeklyReviews = Object.assign({}, sb.weeklyReviews || {}, sa.weeklyReviews || {});
     const ids = new Set(a.items.map(i => i.id)); const items = a.items.concat(b.items.filter(i => !ids.has(i.id)));
     const lk = new Set(a.log.map(l => l.d + '|' + l.id)); const log = a.log.concat(b.log.filter(l => !lk.has(l.d + '|' + l.id)));
     const merged = C.validate(Object.assign({}, b, a, { items, log, settings, exp: mergeExpense(a.exp, b.exp, settings._tombstones) }));
@@ -2061,18 +2236,18 @@ const EN = {'د':'m','س':'h','ص':'p','و':'&',
   function mergeExpense(a, b, ts) {
     if (!a && !b) return undefined;
     const out = Object.assign({}, b || {}, a || {}), dead = new Set((ts || []).map(x => x.kind + '|' + x.id));
-    ['tx','inc','loans','lists','fixed','errands','errTpl'].forEach(k => {
+    ['tx','inc','loans','lists','fixed','errands','errTpl','savingsGoals'].forEach(k => {
       const aa = a && Array.isArray(a[k]) ? a[k] : [], bb = b && Array.isArray(b[k]) ? b[k] : [], seen = new Set(aa.map(x => x.id));
       out[k] = aa.concat(bb.filter(x => !seen.has(x.id))).filter(x => !dead.has(k + '|' + x.id));
     });
     return out;
   }
   function sbApplyLocal(v) {
-    state = applyTombstones(v); try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) { }
+    state = applyTombstones(v); dataRevision++; summaryCache.clear(); try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) { }
     const ae = document.activeElement;
     if (!$('#sheet') && !(ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName))) render();
   }
-  const sbEmpty = () => !state.items.length && !(state.log && state.log.length) && !(state.exp && ['inc','loans','tx','lists','fixed','errands','errTpl'].some(k => Array.isArray(state.exp[k]) && state.exp[k].length));
+  const sbEmpty = () => !state.items.length && !(state.log && state.log.length) && !(state.settings.inbox && state.settings.inbox.length) && !(state.settings.weeklyReviews && Object.keys(state.settings.weeklyReviews).length) && !(state.exp && ['inc','loans','tx','lists','fixed','errands','errTpl','savingsGoals'].some(k => Array.isArray(state.exp[k]) && state.exp[k].length));
   function sbStat(t) { sbMsg = t; const el = $('#sbstat'); if (el) el.textContent = sbStatText(); }
   function sbStatText() {
     if (!sbSess) return '';
