@@ -735,7 +735,7 @@ const Core = (() => {
   }
   const loanLeft = l => r2(mn(l.amt) - (l.pays || []).reduce((s, p) => s + mn(p.amt), 0));
   function mxTabs() {
-    const T2 = [['sum', '📊', 'ملخص', 'Summary'], ['buy', '🧾', 'مشتريات', 'Purchases'], ['lists', '🛒', 'قوائم', 'Lists'], ['loans', '🤝', 'سلف', 'Loans'], ['scan', '📷', 'فاتورة', 'Receipt']];
+    const T2 = [['sum', '📊', 'ملخص', 'Summary'], ['buy', '🧾', 'مشتريات', 'Purchases'], ['lists', '🛒', 'قوائم', 'Lists'], ['loans', '🤝', 'سلف', 'Loans'], ['scan', '📷', 'فاتورة', 'Receipt'], ['items', '📈', 'أصناف', 'Items']];
     return `<div class="chips">${T2.map(t => `<button class="${mx.tab === t[0] ? 'on' : ''}" data-mx="tab" data-a="${t[0]}">${t[1]} ${X(t[2], t[3])}</button>`).join('')}</div>`;
   }
   function mxMonthBar() {
@@ -744,7 +744,7 @@ const Core = (() => {
   }
   function money_() {
     const e = ex(); autoLog(); genRecurring(); let body = '';
-    if (mx.tab === 'buy') body = mxBuy(); else if (mx.tab === 'lists') body = mxLists(); else if (mx.tab === 'loans') body = mxLoans(); else if (mx.tab === 'scan') body = mxScan(); else body = mxSum();
+    if (mx.tab === 'buy') body = mxBuy(); else if (mx.tab === 'lists') body = mxLists(); else if (mx.tab === 'loans') body = mxLoans(); else if (mx.tab === 'scan') body = mxScan(); else if (mx.tab === 'items') body = mxItems(); else body = mxSum();
     const fab = (mx.tab === 'sum' || mx.tab === 'buy') ? `<button class="fab" data-mx="buyadd" aria-label="${X('إضافة مشتريات', 'Add purchase')}">＋</button>` : '';
     return `<h1>💰 ${X('المصاريف', 'Expenses')}</h1>${mxTabs()}${(mx.tab === 'sum' || mx.tab === 'buy' || mx.tab === 'loans' && false) ? mxMonthBar() : ''}${body}${fab}`;
   }
@@ -781,6 +781,29 @@ const Core = (() => {
     const tot = r2(l.reduce((s, t) => s + mn(t.amt), 0));
     return `${cats.length > 1 ? `<div class="chips"><button class="${!mx.fcat ? 'on' : ''}" data-mx="fcat" data-a="">${X('الكل', 'All')}</button>${cats.map(c => `<button class="${mx.fcat === c ? 'on' : ''}" data-mx="fcat" data-a="${esc(c)}">${catIcon(c)} ${esc(catName(c))}</button>`).join('')}</div>` : ''}
     <div class="box">${l.length ? l.map(txRow).join('') + `<div class="row"><div class="t"><b>${X('الإجمالي', 'Total')}: ${money(tot)}</b></div></div>` : `<p class="muted">${X('مفيش مشتريات في الشهر ده. اضغط ＋ أو سجّل فاتورة.', 'No purchases this month. Tap ＋ or record a receipt.')}</p>`}</div>${mxCompare()}`;
+  }
+  // ---------- top items report ----------
+  const UNITS = ['كجم', 'جرام', 'لتر', 'علبة', 'كيس', 'عبوة', 'قطعة', 'زجاجة', 'كرتونة'];
+  function itemStats(days) {
+    const t0 = today(), from = days > 0 ? C.ymd(new Date(C.parse(t0).getTime() - days * 864e5)) : '';
+    const m = {};
+    ex().tx.forEach(t => { if (!t.d || (from && t.d < from)) return; (t.items || []).forEach(i => { const nm = normN(i.n); const q = mn(i.q == null || i.q === '' ? 1 : i.q), p = mn(i.p); if (!nm || !(q > 0)) return; const u = String(i.u || '').trim(); const k = nm + '|' + normN(u); const o = m[k] = m[k] || { n: i.n, u, by: {}, spent: 0, qty: 0 }; o.by[t.d] = (o.by[t.d] || 0) + q; o.qty += q; o.spent += q * p; }); });
+    return Object.values(m).map(o => {
+      const ds = Object.keys(o.by).sort(); o.times = ds.length; o.last = ds[ds.length - 1];
+      if (ds.length >= 2) { const span = C.daysBetween(C.parse(ds[0]), C.parse(o.last)); const qBefore = ds.slice(0, -1).reduce((s, d) => s + o.by[d], 0); o.gap = span / (ds.length - 1); o.perDay = span > 0 ? qBefore / span : 0; o.next = C.ymd(new Date(C.parse(o.last).getTime() + Math.round(o.gap) * 864e5)); }
+      o.avgP = o.qty > 0 ? o.spent / o.qty : 0; return o;
+    });
+  }
+  function mxItems() {
+    const per = mx.ip == null ? 90 : mx.ip, srt = mx.is || 'times';
+    let h = itemStats(per).sort((a, b) => srt === 'spent' ? b.spent - a.spent : (b.times - a.times) || (b.spent - a.spent)).slice(0, 25);
+    const chip = (a, v, cur2, l) => `<button class="${cur2 === v ? 'on' : ''}" data-mx="${a}" data-a="${v}">${l}</button>`;
+    const rows = h.map(o => `<div class="row" style="align-items:flex-start"><div class="t"><b>${esc(o.n)}</b>${o.u ? ' <span class="chip">' + esc(o.u) + '</span>' : ''}<div class="muted">${X('اشتريته', 'Bought')} ${o.times} ${X('مرة', 'times')} · ${X('الكمية', 'Qty')} <bdi>${fm(o.qty)}</bdi>${o.u ? ' ' + esc(o.u) : ''} · ${X('صرفت', 'Spent')} ${money(o.spent)} · ${X('متوسط السعر', 'Avg price')} <bdi>${fm(o.avgP)}</bdi></div>
+      <div class="muted">${o.gap != null ? `⏱ ${X('بيكفّي حوالي', 'Lasts about')} <b><bdi>${fm(Math.round(o.gap * 10) / 10)}</bdi></b> ${X('يوم', 'days')}${o.perDay > 0 ? ` · ${X('بتستهلك', 'Use')} <bdi>${fm(Math.round(o.perDay * 100) / 100)}</bdi>${o.u ? ' ' + esc(o.u) : ''} ${X('في اليوم', 'per day')}` : ''} · ${X('آخر شراء', 'Last')} ${mdf(o.last)} · ${X('الشراء الجاي تقريباً', 'Next about')} ${mdf(o.next)}` : X('محتاج شراءتين على الأقل في أيام مختلفة عشان نحسب بيكفّي كام يوم', 'Needs at least two purchases on different days to estimate how long it lasts')}</div></div></div>`).join('');
+    return `<div class="chips">${chip('iper', 30, per, X('٣٠ يوم', '30 days'))}${chip('iper', 90, per, X('٣ شهور', '3 months'))}${chip('iper', 365, per, X('سنة', 'Year'))}${chip('iper', 0, per, X('الكل', 'All'))}</div>
+    <div class="chips" style="margin-top:6px">${chip('isort', 'times', srt, X('الأكتر مرات', 'Most often'))}${chip('isort', 'spent', srt, X('الأكتر فلوس', 'Most money'))}</div>
+    <div class="box">${rows || `<p class="muted">${X('لسه مفيش أصناف. سجّل مشتريات واكتب اسم الصنف والكمية والوحدة (أو سجّل فاتورة بالأصناف).', 'No items yet. Record a purchase with the item name, quantity and unit (or record a receipt with items).')}</p>`}</div>
+    <p class="muted">${X('الحساب بيقارن بس نفس الصنف بنفس الوحدة، ومبني على الفرق بين أيام الشراء. تقدير مش أكيد: لو خزّنت أو اشتريت من مكان تاني بيبان غلط.', 'Only the same item in the same unit is compared, based on the days between purchases. It is an estimate: stocking up or buying elsewhere makes it inaccurate.')}</p>`;
   }
   function priceHist() {
     const m = {};
@@ -1070,6 +1093,9 @@ const Core = (() => {
     sheet(`<h3>🧾 ${t ? X('تعديل مشتريات', 'Edit purchase') : X('مشتريات جديدة', 'New purchase')}</h3><div class="fld"><label>${X('المبلغ', 'Amount')}</label><input id="mxb2-a" inputmode="decimal" value="${t ? t.amt : ''}"></div>
     <div class="fld"><label>${X('التصنيف', 'Category')}</label><select id="mxb2-c">${catOpts(t ? t.cat : 'food')}</select></div><div class="fld"><label>${X('بيان / المحل', 'Description / store')}</label><input id="mxb2-n" maxlength="100" value="${esc(t ? t.note || '' : '')}"></div>
     <div class="fld"><label>${X('التاريخ', 'Date')}</label><input id="mxb2-d" type="date" value="${t ? t.d : dayIn(curM())}"></div>
+    ${(!t || !t.items || t.items.length <= 1) ? `<div class="box" style="margin:8px 0"><div class="muted">${X('اختياري: اسم الصنف والكمية عشان تعرف بتشتري إيه أكتر وبيكفّي كام يوم', 'Optional: item name and quantity, to see what you buy most and how long it lasts')}</div>
+    <div class="fld"><label>${X('اسم الصنف', 'Item name')}</label><input id="mxb2-i" list="mxitems" maxlength="60" value="${esc(t && t.items && t.items[0] ? t.items[0].n : '')}"><datalist id="mxitems">${[...new Set(ex().tx.flatMap(x => (x.items || []).map(i => i.n)))].slice(0, 80).map(n => `<option value="${esc(n)}">`).join('')}</datalist></div>
+    <div class="mxg2"><div class="fld"><label>${X('الكمية', 'Quantity')}</label><input id="mxb2-q" inputmode="decimal" value="${t && t.items && t.items[0] ? t.items[0].q : ''}"></div><div class="fld"><label>${X('الوحدة', 'Unit')}</label><input id="mxb2-u" list="mxunits" maxlength="20" value="${esc(t && t.items && t.items[0] ? t.items[0].u || '' : '')}"><datalist id="mxunits">${UNITS.map(u => `<option value="${u}">`).join('')}</datalist></div></div></div>` : ''}
     <div class="big-btns"><button class="btn pri" data-mx="bsave2" data-a="${id || ''}">${X('حفظ', 'Save')}</button><button class="btn" data-act="closesheet">${X('إلغاء', 'Cancel')}</button></div>`);
     setTimeout(() => { const e = $('#mxb2-a'); if (e) e.focus(); }, 50);
   }
@@ -1115,6 +1141,8 @@ const Core = (() => {
     const cf = m => window.confirm(m);
     switch (a) {
       case 'tab': mx.tab = v; render(); break;
+      case 'iper': mx.ip = +v; render(); break;
+      case 'isort': mx.is = v; render(); break;
       case 'mon': mx.m = mshift(curM(), +v); render(); break;
       case 'fcat': mx.fcat = v; render(); break;
       case 'demo': mxDemo(); break;
@@ -1126,7 +1154,7 @@ const Core = (() => {
       case 'buyadd': buySheet(); break;
       case 'txedit': { const t = e.tx.find(x => x.id === v); if (!t) break; if (t.items && t.items.length) newDraft({ items: t.items.map(i => Object.assign({}, i)), date: t.d, store: t.note, cat: t.cat }, t.src || 'manual', { editId: t.id }); else buySheet(v); break; }
       case 'txdel': { const t = e.tx.find(x => x.id === v); if (t && cf(X('تحذف المشتريات دي؟', 'Delete this purchase?'))) { if (t.fx) { e.fxskip = e.fxskip || []; e.fxskip.push(t.fx + '|' + t.fm); } if (t.er) { const x = erq().find(z => z.id === t.er); if (x) { x.done = false; delete x.bd; } } e.tx = e.tx.filter(x => x.id !== v); save(); render(); } break; }
-      case 'bsave2': { const amt = mn($('#mxb2-a').value); if (!(amt > 0)) { toast(X('اكتب المبلغ', 'Enter the amount')); return; } const o = { amt, cat: $('#mxb2-c').value, note: $('#mxb2-n').value.trim(), d: $('#mxb2-d').value || today() }; if (v) Object.assign(e.tx.find(x => x.id === v), o); else e.tx.push(Object.assign({ id: uid(), src: 'manual' }, o)); mx.m = o.d.slice(0, 7); save(); closeSheet(); render(); break; }
+      case 'bsave2': { const amt = mn($('#mxb2-a').value); if (!(amt > 0)) { toast(X('اكتب المبلغ', 'Enter the amount')); return; } const o = { amt, cat: $('#mxb2-c').value, note: $('#mxb2-n').value.trim(), d: $('#mxb2-d').value || today() }; { const inm = $('#mxb2-i'); if (inm) { const nm = inm.value.trim(); const q0 = mn(($('#mxb2-q') || {}).value); const q = q0 > 0 ? q0 : 1; if (nm) o.items = [{ n: nm, q, u: (($('#mxb2-u') || {}).value || '').trim(), p: Math.round(amt / q * 10000) / 10000 }]; else if (v) { const old = e.tx.find(x => x.id === v); if (old && old.items && old.items.length === 1) delete old.items; } } } if (v) Object.assign(e.tx.find(x => x.id === v), o); else e.tx.push(Object.assign({ id: uid(), src: 'manual' }, o)); mx.m = o.d.slice(0, 7); save(); closeSheet(); render(); break; }
       case 'bsave': budgetSave(); break;
       case 'budget': budgetSheet(); break;
       case 'fadd': fixedSheet(); break;
