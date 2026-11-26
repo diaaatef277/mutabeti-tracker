@@ -187,7 +187,7 @@ textarea.notes{min-height:160px;resize:vertical;line-height:1.7}
 .mxh,.mxdr{display:grid;grid-template-columns:2fr .8fr 1fr 1fr 30px;gap:4px;align-items:center;margin-top:4px}.mxdr input{width:100%;min-width:0;padding:6px}.mxh{font-size:11px}
 .mxcmp{padding:6px 0;border-bottom:1px solid var(--bd)}details summary{cursor:pointer}
 
-#lock{position:fixed;inset:0;z-index:9999;background:var(--bg);display:flex;align-items:center;justify-content:center}.lockbox{text-align:center;width:min(320px,86vw)}.lockbox input{width:100%;text-align:center;font-size:22px;letter-spacing:6px;padding:10px;margin:10px 0}
+#lock,#authscr{position:fixed;inset:0;z-index:9999;background:var(--bg);display:flex;align-items:center;justify-content:center}.lockbox{text-align:center;width:min(320px,86vw)}.lockbox input{width:100%;text-align:center;font-size:22px;letter-spacing:6px;padding:10px;margin:10px 0}#authscr .lockbox input{font-size:16px;letter-spacing:0;text-align:start}#authscr .lockbox .btn{width:100%;margin-top:4px}
 body.locked .app,body.locked .tabs{visibility:hidden}
 @media print{.side,.tabs,.top,.fab,.noprint,.mxmon button{display:none!important}.main{margin:0!important}}
 </style></head><body>
@@ -1273,13 +1273,13 @@ const Core = (() => {
     if (document.getElementById('lock')) return; document.body.classList.add('locked');
     const d = document.createElement('div'); d.id = 'lock'; d.innerHTML = `<div class="lockbox"><div style="font-size:42px">🔒</div><h2>${X('التطبيق مقفول', 'App locked')}</h2><input id="lockin" type="password" inputmode="numeric" autocomplete="off" maxlength="12" placeholder="${X('اكتب الرقم السري', 'Enter your PIN')}"><div id="lockmsg" class="muted" style="min-height:20px"></div><button class="btn pri" id="lockgo">${X('فتح', 'Unlock')}</button><p><button class="btn sm" id="lockforgot">${X('نسيت الرقم؟', 'Forgot PIN?')}</button></p></div>`;
     document.body.appendChild(d); const inp = d.querySelector('#lockin'); setTimeout(() => inp.focus(), 50);
-    const go = async () => { const m = d.querySelector('#lockmsg'); if (Date.now() < blockUntil) { m.textContent = X('استنى شوية وحاول تاني', 'Wait a moment and retry'); return; } const r = pinRec(); if (!r) { d.remove(); document.body.classList.remove('locked'); return; } const h = await hashPin(inp.value, r.salt); if (h === r.h) { fails = 0; d.remove(); document.body.classList.remove('locked'); } else { fails++; inp.value = ''; m.textContent = X('الرقم غلط', 'Wrong PIN'); if (fails >= 5) { blockUntil = Date.now() + 30000; try { localStorage.setItem(PINK + '_bu', String(blockUntil)); } catch (e) { } fails = 0; m.textContent = X('محاولات كتير، استنى ٣٠ ثانية', 'Too many tries, wait 30 seconds'); } } };
+    const go = async () => { const m = d.querySelector('#lockmsg'); if (Date.now() < blockUntil) { m.textContent = X('استنى شوية وحاول تاني', 'Wait a moment and retry'); return; } const r = pinRec(); if (!r) { d.remove(); document.body.classList.remove('locked'); return; } const h = await hashPin(inp.value, r.salt); if (h === r.h) { fails = 0; d.remove(); document.body.classList.remove('locked'); pinTouch(); } else { fails++; inp.value = ''; m.textContent = X('الرقم غلط', 'Wrong PIN'); if (fails >= 5) { blockUntil = Date.now() + 30000; try { localStorage.setItem(PINK + '_bu', String(blockUntil)); } catch (e) { } fails = 0; m.textContent = X('محاولات كتير، استنى ٣٠ ثانية', 'Too many tries, wait 30 seconds'); } } };
     d.querySelector('#lockgo').onclick = go; inp.onkeydown = e => { if (e.key === 'Enter') go(); };
     d.querySelector('#lockforgot').onclick = () => { if (window.confirm(X('لو نسيت الرقم الحل الوحيد إنك تمسح كل بيانات التطبيق من الجهاز ده (وتستورد نسخة احتياطية بعدها). تمسح؟', 'If you forgot the PIN the only way in is to erase all app data on this device (then import a backup). Erase?'))) { try { localStorage.removeItem(PINK); localStorage.removeItem(KEY); } catch (e) { } location.reload(); } };
   }
   function lockSettingsBox() {
     const has = !!pinRec();
-    return `<h2>🔒 ${X('قفل التطبيق', 'App lock')}</h2><div class="box"><p class="muted">${X('رقم سري بيتطلب عند فتح التطبيق وبعد ما يفضل في الخلفية ٢ دقيقة. ده قفل شاشة بس: البيانات نفسها مش متشفّرة، ومحدش يقدر يفتح التطبيق من غير الرقم، لكن اللي معاه جهازك ومعاه خبرة ممكن يوصلها من المتصفح. لو نسيت الرقم لازم تمسح البيانات.', 'A PIN is required when the app opens and after 2 minutes in the background. This is a screen lock only: the data is not encrypted. If you forget the PIN you must erase the data.')}</p>
+    return `<h2>🔒 ${X('قفل التطبيق', 'App lock')}</h2><div class="box"><p class="muted">${X('رقم سري بيتطلب عند فتح التطبيق وبعد ما تغيب عنه ٥ دقايق أو أكتر. ده قفل شاشة بس: البيانات نفسها مش متشفّرة، ومحدش يقدر يفتح التطبيق من غير الرقم، لكن اللي معاه جهازك ومعاه خبرة ممكن يوصلها من المتصفح. لو نسيت الرقم لازم تمسح البيانات.', 'A PIN is required when the app opens and after you have been away for 5 minutes or more. This is a screen lock only: the data is not encrypted. If you forget the PIN you must erase the data.')}</p>
     <div class="fld"><label>${has ? X('رقم جديد (٤ إلى ١٢ رقم)', 'New PIN (4 to 12 digits)') : X('الرقم السري (٤ إلى ١٢ رقم)', 'PIN (4 to 12 digits)')}</label><input id="pin1" type="password" inputmode="numeric" maxlength="12" autocomplete="off"></div>
     <div class="fld"><label>${X('أكّد الرقم', 'Confirm PIN')}</label><input id="pin2" type="password" inputmode="numeric" maxlength="12" autocomplete="off"></div>
     ${has ? `<div class="fld"><label>${X('الرقم الحالي', 'Current PIN')}</label><input id="pin0" type="password" inputmode="numeric" maxlength="12" autocomplete="off"></div>` : ''}
@@ -1289,10 +1289,16 @@ const Core = (() => {
     const r = pinRec(), p1 = $('#pin1').value, p2 = $('#pin2').value;
     if (r) { const h = await hashPin(($('#pin0') || {}).value || '', r.salt); if (h !== r.h) { toast(X('الرقم الحالي غلط', 'Current PIN is wrong')); return; } }
     if (!/^\d{4,12}$/.test(p1)) { toast(X('الرقم لازم يكون ٤ لـ ١٢ رقم', 'PIN must be 4 to 12 digits')); return; } if (p1 !== p2) { toast(X('الرقمين مش متطابقين', 'PINs do not match')); return; }
-    const salt = Math.random().toString(36).slice(2); localStorage.setItem(PINK, JSON.stringify({ salt, h: await hashPin(p1, salt) })); toast(X('اتفعّل القفل', 'Lock is on')); render();
+    const salt = Math.random().toString(36).slice(2); localStorage.setItem(PINK, JSON.stringify({ salt, h: await hashPin(p1, salt) })); toast(X('اتفعّل القفل', 'Lock is on')); pinTouch(); render();
   }
   async function pinOff() { const r = pinRec(); if (!r) return; const h = await hashPin(($('#pin0') || {}).value || '', r.salt); if (h !== r.h) { toast(X('اكتب الرقم الحالي صح', 'Enter the current PIN')); return; } localStorage.removeItem(PINK); toast(X('اتلغى القفل', 'Lock is off')); render(); }
-  document.addEventListener('visibilitychange', () => { if (document.hidden) lockedAt = Date.now(); else if (pinRec() && lockedAt && Date.now() - lockedAt > 120000) showLock(); });
+  const PTS = PINK + '_ts', AWAY = 300000;
+  const pinTouch = () => { if (document.getElementById('lock')) return; try { localStorage.setItem(PTS, String(Date.now())); } catch (e) { } };
+  const pinAway = () => { try { const t = +localStorage.getItem(PTS) || 0; return !t || Date.now() - t >= AWAY; } catch (e) { return true; } };
+  document.addEventListener('visibilitychange', () => { if (document.hidden) { lockedAt = Date.now(); pinTouch(); } else if (pinRec() && pinAway()) showLock(); else pinTouch(); });
+  window.addEventListener('pagehide', pinTouch);
+  setInterval(() => { if (!document.hidden) pinTouch(); }, 20000);
+  ['pointerdown', 'keydown'].forEach(ev => document.addEventListener(ev, () => { if (pinRec()) pinTouch(); }, { passive: true }));
   // ---------- install / offline ----------
   const SWSRC = `const C='mutabeti-v8';self.addEventListener('install',e=>{self.skipWaiting();});self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==C).map(k=>caches.delete(k)))).then(()=>self.clients.claim()));});self.addEventListener('fetch',e=>{if(e.request.method!=='GET')return;e.respondWith(fetch(e.request).then(r=>{if(r&&r.ok&&new URL(e.request.url).origin===location.origin){const c=r.clone();caches.open(C).then(x=>x.put(e.request,c));}return r;}).catch(()=>caches.match(e.request,{ignoreSearch:true}).then(m=>m||caches.match(self.registration.scope,{ignoreSearch:true}))));});`;
   const pw = { prompt: null, sw: 'none' };
@@ -2069,7 +2075,37 @@ const EN = {'د':'m','س':'h','ص':'p','و':'&',
   async function sbLogout() {
     if (!window.confirm(X('هتخرج من الحساب السحابي. بياناتك هتفضل على الجهاز ده، ومش هتتزامن لحد ما تسجّل دخول تاني. تكمل؟', 'Sign out of cloud sync? Your data stays on this device but will not sync until you sign in again.'))) return;
     try { if (sbSess) await sbFetch('/auth/v1/logout', { method: 'POST', headers: { Authorization: 'Bearer ' + sbSess.at } }); } catch (e) { }
-    sbSess = null; sbSaveSess(); sbMsg = ''; render();
+    sbSess = null; sbSaveSess(); sbMsg = ''; try { localStorage.removeItem(NOACCT); } catch (e) { } render(); showAuth();
+  }
+
+  const NOACCT = KEY + '_noacct';
+  function showAuth() {
+    if (sbSess || document.getElementById('authscr')) return; try { if (localStorage.getItem(NOACCT)) return; } catch (e) { }
+    document.body.classList.add('locked');
+    const d = document.createElement('div'); d.id = 'authscr'; let mode = 'in';
+    const close = () => { d.remove(); if (!document.getElementById('lock')) document.body.classList.remove('locked'); };
+    const paint = () => {
+      const up = mode === 'up';
+      d.innerHTML = `<div class="lockbox"><div style="font-size:42px">☁️</div><h2>${up ? X('حساب جديد', 'Create account') : X('سجّل دخول', 'Sign in')}</h2><p class="muted">${X('بياناتك بتتحفظ على حسابك وتظهر على كل أجهزتك.', 'Your data is saved to your account and shows on all your devices.')}</p><input id="aem" type="email" autocomplete="username" dir="ltr" placeholder="${X('الإيميل', 'Email')}"><input id="apw" type="password" autocomplete="${up ? 'new-password' : 'current-password'}" dir="ltr" placeholder="${up ? X('باسورد (٨ حروف على الأقل)', 'Password (at least 8 characters)') : X('الباسورد', 'Password')}">${up ? `<input id="apw2" type="password" autocomplete="new-password" dir="ltr" placeholder="${X('أكّد الباسورد', 'Confirm password')}">` : ''}<div id="amsg" class="muted" style="min-height:20px"></div><button class="btn pri" id="ago">${up ? X('إنشاء الحساب', 'Create account') : X('تسجيل الدخول', 'Sign in')}</button><p><button class="btn sm" id="amode">${up ? X('عندي حساب، سجّل دخول', 'I have an account, sign in') : X('مستخدم جديد؟ اعمل حساب', 'New here? Create an account')}</button></p><p><button class="btn sm" id="askip">${X('كمّل من غير حساب', 'Continue without an account')}</button></p></div>`;
+      const em = d.querySelector('#aem'), pw = d.querySelector('#apw'), pw2 = d.querySelector('#apw2'), m = d.querySelector('#amsg');
+      const go = async () => {
+        const e1 = em.value.trim(), p1 = pw.value;
+        if (!e1 || !p1) { m.textContent = X('اكتب الإيميل والباسورد', 'Enter email and password'); return; }
+        if (up) { if (p1.length < 8) { m.textContent = X('الباسورد لازم ٨ حروف على الأقل', 'Password must be at least 8 characters'); return; } if (p1 !== pw2.value) { m.textContent = X('الباسوردين مش متطابقين', 'Passwords do not match'); return; } }
+        m.textContent = up ? X('بيعمل الحساب...', 'Creating account...') : X('بيسجّل دخول...', 'Signing in...');
+        try {
+          const r = up ? await sbFetch('/auth/v1/signup', { method: 'POST', body: JSON.stringify({ email: e1, password: p1 }) }) : await sbFetch('/auth/v1/token?grant_type=password', { method: 'POST', body: JSON.stringify({ email: e1, password: p1 }) });
+          if (r.ok && r.json && r.json.access_token) { sbSetSess(r.json); sbMsg = ''; close(); toast(X('اتسجّل الدخول، بيتزامن...', 'Signed in, syncing...')); render(); await sbSync(); render(); return; }
+          if (up && r.ok && r.json) { mode = 'in'; paint(); d.querySelector('#aem').value = e1; d.querySelector('#amsg').textContent = X('بعتنالك إيميل تأكيد. افتحه واضغط على الرابط، وبعدين سجّل دخول هنا. (بص في الرسايل المزعجة لو ما لقيتوش)', 'We sent you a confirmation email. Open it and tap the link, then sign in here. (Check spam if you cannot find it.)'); return; }
+          if (up) m.textContent = r.status === 429 ? X('طلبات كتير، استنى شوية وحاول تاني', 'Too many requests, wait a bit and retry') : (r.json && /already|registered/i.test(JSON.stringify(r.json)) ? X('الإيميل ده عنده حساب، سجّل دخول', 'This email already has an account, sign in') : /password/i.test(JSON.stringify(r.json || '')) ? X('الباسورد ضعيف، جرّب باسورد أطول', 'Password too weak, try a longer one') : X('معرفناش نعمل الحساب. اتأكد من الإيميل وحاول تاني', 'Could not create the account. Check the email and retry'));
+          else m.textContent = /confirm/i.test(JSON.stringify(r.json || '')) ? X('لازم تأكّد الإيميل الأول من الرسالة اللي وصلتلك', 'Please confirm your email first using the message we sent') : X('الإيميل أو الباسورد غلط', 'Wrong email or password');
+        } catch (e) { m.textContent = X('مفيش اتصال بالنت. تقدر تكمّل من غير حساب.', 'No internet. You can continue without an account.'); }
+      };
+      d.querySelector('#ago').onclick = go; (pw2 || pw).onkeydown = e => { if (e.key === 'Enter') go(); }; em.onkeydown = e => { if (e.key === 'Enter') pw.focus(); };
+      d.querySelector('#amode').onclick = () => { mode = up ? 'in' : 'up'; paint(); };
+      d.querySelector('#askip').onclick = () => { try { localStorage.setItem(NOACCT, '1'); } catch (e) { } close(); };
+    };
+    paint(); document.body.appendChild(d); setTimeout(() => { const e = d.querySelector('#aem'); if (e && !document.getElementById('lock')) e.focus(); }, 80);
   }
   function cloudBox() {
     const h = `<h2>☁️ ${X('الحفظ السحابي', 'Cloud sync')}</h2><div class="box">`;
@@ -2087,7 +2123,8 @@ const EN = {'د':'m','س':'h','ص':'p','و':'&',
   if (sbSess) { sbSent = sbMeta.dirty ? '' : sbJson(); setTimeout(sbSync, 400); }
   window.__app = { get state() { return state; }, Core: C, render, go };
   render();
-  if (pinRec()) showLock();
+  if (pinRec() && pinAway()) showLock(); else pinTouch();
+  showAuth();
 })();
 /*ENDAPP*/
 </script></body></html>
