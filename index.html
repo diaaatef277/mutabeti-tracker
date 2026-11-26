@@ -169,7 +169,7 @@ textarea.notes{min-height:160px;resize:vertical;line-height:1.7}
 .wbars .b{width:100%;max-width:36px;background:var(--ac);border-radius:6px 6px 0 0;min-height:3px}
 .wbars .lb{font-size:11px;color:var(--tx2)}
 .pd{display:inline-block;width:10px;height:10px;border-radius:50%;margin-inline-end:6px;vertical-align:middle}.p-h{background:#e03e3e}.p-m{background:#d9730d}.p-l{background:#0f9d58}
-.ra{display:inline-flex;gap:2px;flex:none}.ib2{background:none;border:0;cursor:pointer;font-size:14px;padding:4px 6px;border-radius:8px;opacity:.7}.ib2:hover{background:var(--bg3);opacity:1}.ib2.bad{background:#fbe4e4;color:var(--bad);font-size:12px;opacity:1}
+.ra{display:inline-flex;gap:2px;flex:none}.ib2{background:none;border:0;cursor:pointer;font-size:14px;padding:4px 6px;border-radius:8px;opacity:.7}.ib2[aria-label="حذف"],.ib2[aria-label="Delete"],.ib2[aria-label="حذف القائمة"],.ib2[aria-label="Delete list"]{font-size:19px;padding:10px 12px;margin-inline-start:10px;opacity:.85}.ib2:hover{background:var(--bg3);opacity:1}.ib2.bad{background:#fbe4e4;color:var(--bad);font-size:12px;opacity:1}
 .sp{display:inline-flex;flex-direction:column;gap:3px;min-width:70px;align-items:stretch}.sp .bar{margin:0;height:5px}
 .tinp{flex:1;min-width:0;border:0;background:transparent;color:inherit;font:inherit;padding:4px}.tinp:focus{background:var(--bg3);outline:0;border-radius:6px}
 .bk{background:#fff4e0;border:1px solid #f0c987;color:#6b3a07;border-radius:12px;padding:12px;margin-top:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}.bk b{flex:1;min-width:160px}
@@ -194,7 +194,7 @@ body.locked .app,body.locked .tabs{visibility:hidden}
 <aside class="side"><div class="brand">📓 متابعتي</div><nav class="nav" id="nav"><a data-nav href="#/">🏠 الرئيسية</a><a data-nav href="#/tasks">✅ المهام</a><a data-nav href="#/habits">🔁 العادات</a><a data-nav href="#/books">📚 الكتب</a><a data-nav href="#/movies">🎬 الأفلام</a><a data-nav href="#/learning">🎓 التعلّم</a><a data-nav href="#/calendar">📆 التقويم</a><a data-nav href="#/plans">📅 الخطط</a><a data-nav href="#/week">📊 الأسبوع</a><a data-nav href="#/goals">🎯 أهداف السنة</a><a data-nav href="#/money">💰 المصاريف</a><a data-nav href="#/report">📈 التقرير الشهري</a><a data-nav href="#/yearplan">🗓 الخطة السنوية</a><a data-nav href="#/settings">⚙️ الإعدادات</a></nav></aside>
 <div class="scrim" id="scrim"></div>
 <div class="main">
-<div class="top"><button class="ib" id="menubtn" aria-label="القائمة">☰</button><b id="top-title">متابعتي</b><button class="ib" id="topadd" aria-label="إضافة">＋</button></div>
+<div class="top"><button class="ib" id="menubtn" aria-label="القائمة">☰</button><b id="top-title">متابعتي</b><button class="ib" id="topbk" aria-label="النسخة الاحتياطية">💾</button><button class="ib" id="topadd" aria-label="إضافة">＋</button></div>
 <div class="wrap" id="view"></div></div></div>
 <nav class="tabs"><a data-nav href="#/"><span>🏠</span>الرئيسية</a><a data-nav href="#/tasks"><span>✅</span>المهام</a><a data-nav href="#/habits"><span>🔁</span>العادات</a><a data-nav href="#/books"><span>📚</span>الكتب</a><a data-nav href="#/movies"><span>🎬</span>الأفلام</a><a data-nav href="#/learning"><span>🎓</span>التعلّم</a><a data-nav href="#/calendar"><span>📆</span>التقويم</a><a data-nav href="#/money"><span>💰</span>المصاريف</a></nav>
 <script>/*CORE*/
@@ -524,13 +524,13 @@ const Core = (() => {
       const dn = g.filter(t => C.isDone(t, d)).length;
       return `<h2>${l} <small class="muted">${dn}/${g.length} (${Math.round(dn / g.length * 100)}%)</small></h2><div class="box list">${g.map(t => taskRow(t, d)).join('')}</div>`;
     }).join('');
-    return `<div class="hrow"><h1>✅ المهام</h1><button class="btn pri" data-act="add" data-t="task">＋ مهمة جديدة</button></div>
+    return `<div class="hrow"><h1>✅ المهام</h1></div>
     <div class="qa"><input id="qat" placeholder="＋ اكتب مهمة جديدة واضغط Enter" maxlength="200"><select id="qaf" aria-label="التكرار">${FREQ.map(([f, l]) => `<option value="${f}" ${f === qaFreq ? 'selected' : ''}>${l}</option>`).join('')}</select><button class="btn pri" data-act="qadd">إضافة</button></div>
     <div class="tool"><input type="search" id="tq" placeholder="ابحث في المهام" value="${esc(tf.q)}"></div>
     <div class="chips"><span class="muted" style="align-self:center">ترتيب:</span>${chip('tsort', 'def', 'الافتراضي', tf.sort || 'def')}${chip('tsort', 'prio', 'حسب الأولوية', tf.sort || 'def')}</div>
     <div class="chips">${chip('tfreq', 'all', 'الكل', tf.freq)}${chip('tfreq', 'today', 'النهارده', tf.freq)}${FREQ.map(([f, l]) => chip('tfreq', f, l, tf.freq)).join('')}</div>
     ${cats.length ? `<div class="chips">${chip('tcat', 'all', 'كل التصنيفات', tf.cat)}${cats.map(c => chip('tcat', c, esc(c), tf.cat)).join('')}</div>` : ''}
-    ${groups || '<div class="empty"><b>📝</b>مفيش مهام هنا. اضغط + لإضافة مهمة</div>'}`;
+    ${groups || '<div class="empty"><b>📝</b>مفيش مهام هنا. اكتب مهمة في المربع اللي فوق واضغط «إضافة»</div>'}`;
   }
 
   let qs = {};
@@ -1311,7 +1311,7 @@ const EN = {'د':'m','س':'h','ص':'p','و':'&',
 'مرتبط بعناصر معينة':'Linked to specific items','عدد كتب أخلصها':'Number of books to finish','عدد أفلام أشوفها':'Number of movies to watch','عدد كورسات وشهادات أخلصها':'Number of courses and certificates to finish','أهداف السنة':'Yearly goals','تعديل هدف':'Edit goal','هدف جديد':'New goal','اسم الهدف':'Goal name','نوع الهدف':'Goal type','المستهدف':'Target','عدد':'count','خلصت قبل كده':'Already finished before','رقم تبدأ بيه':'starting number','اختر العناصر المرتبطة':'Choose the linked items','مفيش عناصر لسه':'No items yet','اكتب اسم الهدف الأول':'Type the goal name first','مفيش أهداف لسه':'No goals yet','اضغط هدف جديد':'tap New goal','التقدم بيتحسب تلقائي من الكتب والكورسات والمهام المرتبطة':'Progress is calculated automatically from the linked books, courses and tasks','لأهداف العدد، بيتحسب اللي تخلصه بعد إنشاء الهدف مع رقم تبدأ بيه':'For count goals, it counts what you finish after creating the goal plus a starting number','هدف':'goal'
 };
   Object.assign(EN, {"اليوم":"Day","التوقع تخلص":"Expected finish","الخطة السنوية": "Annual plan", "تنبيهات": "Alerts", "متأخر عن الخطة": "Behind plan", "الشهادة بتنتهي بعد": "Certificate expires in", "يوم، جدّدها": "days, renew it", "ملخص الفترة": "Period summary", "أسبوع": "Week", "شهر": "Month", "ربع سنة": "Quarter", "سنة": "Year", "مهام اتنفذت": "Tasks completed", "عادات اتعملت": "Habits done", "مهام ميعادها في الفترة": "Tasks due in period", "وقت مذاكرة": "Study time", "كتب خلصتها": "Books finished", "كورسات وشهادات خلصتها": "Courses and certificates finished", "أفلام شفتها": "Movies watched", "امتحانات في الفترة": "Exams in period", "اللي خلصته في الفترة": "Finished in period", "مهام الفترة": "Period tasks", "امتحانات الفترة": "Period exams", "كل المهام": "All tasks", "الربع": "Quarter", "لسه مبدأتش": "Not started", "بدأت": "Started", "متوقف": "Paused", "ضيف للخطة": "Add to plan", "ضيف للخطة السنوية": "Add to annual plan", "خلصت من الخطة": "finished from the plan", "كورسات للإنجاز": "Courses to finish", "كتب للقراءة": "Books to read", "مفيش كتب في خطة السنة دي": "No books in this year plan", "مفيش كورسات في خطة السنة دي": "No courses in this year plan", "مفيش امتحانات في خطة السنة دي": "No exams in this year plan", "امتحانات شهادات": "Certification exams", "دوّر على غلاف": "Search for a cover", "ضمن خطة سنة": "In plan of year", "حالة الكورس": "Course status", "المحاضر": "Instructor", "تاريخ البدء": "Start date", "تاريخ الانتهاء": "End date", "سعر الامتحان": "Exam price", "مركز": "Center", "مكان الامتحان": "Exam location", "تاريخ انتهاء الشهادة": "Certificate expiry date", "تجديد": "renewal", "الشهادة انتهت، جدّدها": "Certificate expired, renew it", "الشهادة بتنتهي النهارده": "Certificate expires today", "السابق": "Previous", "التالي": "Next", "الحالي": "Current", "شيل من الخطة": "Remove from plan", "أهداف السنة": "Yearly goals", "مفيش عناصر متاحة": "No items available", "أضف كتاب أو كورس أو شهادة الأول": "Add a book, course or certificate first", "اضغط ضيف للخطة": "Tap Add to plan", "خلصت": "Done", "نجحت": "Passed", "التعلّم": "Learning"});
-  Object.assign(EN, {'تراجع': 'Undo', 'تنزيل النسخة المحفوظة': 'Download saved copy', 'تمام': 'OK', 'استرجاع نسخة ما قبل الاستيراد': 'Restore pre-import copy', 'تنزيل نسخة الاسترجاع': 'Download recovery copy', 'إعادة تحميل': 'Reload', 'حصلت مشكلة غير متوقعة': 'Something went wrong', 'بياناتك لسه محفوظة. صدّر نسخة احتياطية قبل أي حاجة': 'Your data is still saved. Export a backup first', 'البيانات المحفوظة كانت تالفة واتحفظت نسخة منها': 'Saved data was corrupted; a copy was kept', 'مفيش نسخة محفوظة': 'No saved copy', 'المصاريف': 'Expenses', 'التقرير الشهري': 'Monthly report', 'مهام، كتب، شهادات، مصاريف، طلبات': 'tasks, books, certificates, expenses, errands'});
+  Object.assign(EN, {'متأكد إنك عايز تحذف العنصر ده؟': 'Are you sure you want to delete this item?', 'مفيش مهام هنا. اكتب مهمة في المربع اللي فوق واضغط «إضافة»': 'No tasks here. Type a task in the box above and tap Add', 'تراجع': 'Undo', 'تنزيل النسخة المحفوظة': 'Download saved copy', 'تمام': 'OK', 'استرجاع نسخة ما قبل الاستيراد': 'Restore pre-import copy', 'تنزيل نسخة الاسترجاع': 'Download recovery copy', 'إعادة تحميل': 'Reload', 'حصلت مشكلة غير متوقعة': 'Something went wrong', 'بياناتك لسه محفوظة. صدّر نسخة احتياطية قبل أي حاجة': 'Your data is still saved. Export a backup first', 'البيانات المحفوظة كانت تالفة واتحفظت نسخة منها': 'Saved data was corrupted; a copy was kept', 'مفيش نسخة محفوظة': 'No saved copy', 'المصاريف': 'Expenses', 'التقرير الشهري': 'Monthly report', 'مهام، كتب، شهادات، مصاريف، طلبات': 'tasks, books, certificates, expenses, errands'});
   const RUNRE = /[\u0600-\u06FF]+(?:[ ،]+[\u0600-\u06FF]+)*/g;
   const HASAR = /[\u0600-\u06FF]/;
   let USET = new Set();
@@ -1360,6 +1360,15 @@ const EN = {'د':'m','س':'h','ص':'p','و':'&',
     if (!init) render();
   }
   function markBackup() { state.settings.lastBackup = Date.now(); save(); setTimeout(render, 50); }
+  function backupSheet() {
+    sheet(`<h3>💾 النسخة الاحتياطية</h3><p class="muted">البيانات محفوظة على جهازك فقط. اعمل نسخة احتياطية من وقت للتاني.</p><div class="big-btns"><button class="btn pri" data-act="export">تصدير ملف</button><label class="btn" style="cursor:pointer">استيراد ملف<input type="file" id="bkifile" accept=".json,.txt,application/json,text/plain" hidden></label></div>`);
+    const bi = $('#bkifile'); if (bi) bi.onchange = (e) => { onImportFile(e); closeSheet(); };
+  }
+  function confirmDel(title, onYes) {
+    sheet(`<h3>🗑 حذف</h3><p>متأكد إنك عايز تحذف العنصر ده؟</p>${title ? `<p><b>${esc(title)}</b></p>` : ''}<div class="big-btns"><button class="btn bad" id="cdel-y">حذف</button><button class="btn" id="cdel-n">إلغاء</button></div>`);
+    $('#cdel-y').onclick = () => { closeSheet(); onYes(); };
+    $('#cdel-n').onclick = () => closeSheet();
+  }
   function bkBanner() {
     const st = state.settings; if (!state.items.length || (st.bkSnooze && st.bkSnooze > Date.now())) return '';
     const age = st.lastBackup ? (Date.now() - st.lastBackup) / 864e5 : null;
@@ -1610,7 +1619,7 @@ const EN = {'د':'m','س':'h','ص':'p','و':'&',
     else { html = dashboard() + mxMini(); cur = '#/'; }
     $('#view').innerHTML = html;
     if (h === '#/money') updDraft();
-    if (!m && !['#/settings', '#/money', '#/report', '#/week', '#/goals', '#/yearplan'].includes(cur) && !$('#view .fab')) { const fb = document.createElement('button'); fb.className = 'fab'; fb.dataset.act = 'add'; if (cur === '#/tasks') fb.dataset.t = 'task'; if (cur === '#/habits') fb.dataset.t = 'habit'; fb.setAttribute('aria-label', 'إضافة'); fb.textContent = '+'; $('#view').appendChild(fb); }
+    if (!m && !['#/settings', '#/money', '#/report', '#/week', '#/goals', '#/yearplan', '#/tasks'].includes(cur) && !$('#view .fab')) { const fb = document.createElement('button'); fb.className = 'fab'; fb.dataset.act = 'add'; if (cur === '#/tasks') fb.dataset.t = 'task'; if (cur === '#/habits') fb.dataset.t = 'habit'; fb.setAttribute('aria-label', 'إضافة'); fb.textContent = '+'; $('#view').appendChild(fb); }
     document.querySelectorAll('[data-nav]').forEach(a => a.classList.toggle('on', a.getAttribute('href') === cur));
     document.body.classList.remove('menu');
     if (m) { const el = $('#cfile'); if (el) el.onchange = onCoverFile; }
@@ -1802,7 +1811,7 @@ const EN = {'د':'m','س':'h','ص':'p','و':'&',
       case 'calnav': { const n = new Date(cal.y, cal.m + (+b.dataset.v), 1); cal.y = n.getFullYear(); cal.m = n.getMonth(); render(); break; }
       case 'calplan': addForm('plan', { date: cal.sel || C.ymd(d) }); break;
       case 'autocover': autoCover(it, b); break;
-      case 'rdel': { const rid = b.dataset.id; const ix = state.items.findIndex(x => x.id === rid); if (ix < 0) break; const snap = state.items[ix]; const logs = state.log.filter(l => l.id === rid); state.items.splice(ix, 1); state.log = state.log.filter(l => l.id !== rid); save(); render(); toastUndo('تم الحذف', () => { state.items.splice(Math.min(ix, state.items.length), 0, snap); state.log.push(...logs); save(); render(); }); break; }
+      case 'rdel': { const rid = b.dataset.id; const it0 = state.items.find(x => x.id === rid); if (!it0) break; confirmDel(it0.title, () => { const ix = state.items.findIndex(x => x.id === rid); if (ix < 0) return; const snap = state.items[ix]; const logs = state.log.filter(l => l.id === rid); state.items.splice(ix, 1); state.log = state.log.filter(l => l.id !== rid); save(); render(); toastUndo('تم الحذف', () => { state.items.splice(Math.min(ix, state.items.length), 0, snap); state.log.push(...logs); save(); render(); }); }); break; }
       case 'redit': editSheet(b.dataset.id); break;
       case 'rsave': saveEdit(b.dataset.id); break;
       case 'lang': setLang(b.dataset.v); break;
@@ -1815,7 +1824,7 @@ const EN = {'د':'m','س':'h','ص':'p','و':'&',
       case 'snooze': state.settings.bkSnooze = Date.now() + 864e5; save(); render(); break;
       case 'gedit': goalSheet(b.dataset.id); break;
       case 'gsave': goalSave(b.dataset.id); break;
-      case 'gdel': { const id = b.dataset.id; if (pendingDel === id) { state.settings.goals = goalsList().filter(x => x.id !== id); pendingDel = null; save(); toast('تم الحذف'); render(); } else { pendingDel = id; b.textContent = '❗ تأكيد'; b.classList.add('bad'); setTimeout(() => { if (pendingDel === id) { pendingDel = null; if (b.isConnected) { b.textContent = '🗑'; b.classList.remove('bad'); } } }, 4000); } break; }
+      case 'gdel': { const id = b.dataset.id; const g0 = goalsList().find(x => x.id === id); confirmDel(g0 ? g0.title : '', () => { state.settings.goals = goalsList().filter(x => x.id !== id); pendingDel = null; save(); toast('تم الحذف'); render(); }); break; }
       case 'rng': state.settings.rng = b.dataset.v; state.settings.roff = 0; save(); render(); break;
       case 'roff': state.settings.roff = +b.dataset.v === 0 ? 0 : (state.settings.roff || 0) + (+b.dataset.v); save(); render(); break;
       case 'ypn': yp.y = String(+(yp.y || now().getFullYear()) + (+b.dataset.v)); render(); break;
@@ -1834,9 +1843,9 @@ const EN = {'د':'m','س':'h','ص':'p','و':'&',
       case 'coverurl': coverUrlForm(id); break;
       case 'coversave': { const v = $('#curl').value.trim(); if (!/^https?:\/\//i.test(v)) { toast('الرابط لازم يبدأ بـ http'); break; } it.cover = v; save(); closeSheet(); render(); break; }
       case 'coverrm': delete it.cover; save(); render(); break;
-      case 'del': { const ix = state.items.findIndex(x => x.id === id); if (ix < 0) break; const snap = state.items[ix]; const logs = state.log.filter(l => l.id === id); state.items.splice(ix, 1); state.log = state.log.filter(l => l.id !== id); save(); go('#/'); toastUndo('تم الحذف', () => { state.items.splice(Math.min(ix, state.items.length), 0, snap); state.log.push(...logs); save(); go('#/item/' + id); }); break; }
+      case 'del': { const it0 = state.items.find(x => x.id === id); if (!it0) break; confirmDel(it0.title, () => { const ix = state.items.findIndex(x => x.id === id); if (ix < 0) return; const snap = state.items[ix]; const logs = state.log.filter(l => l.id === id); state.items.splice(ix, 1); state.log = state.log.filter(l => l.id !== id); save(); go('#/'); toastUndo('تم الحذف', () => { state.items.splice(Math.min(ix, state.items.length), 0, snap); state.log.push(...logs); save(); go('#/item/' + id); }); }); break; }
       case 'catadd': catAdd(b.dataset.g); break;
-      case 'catdel': { const g = b.dataset.g; const l = catList(g).slice(); l.splice(+b.dataset.i, 1); setCats(g, l); break; }
+      case 'catdel': { const g = b.dataset.g; const nm = catList(g)[+b.dataset.i]; confirmDel(nm || '', () => { const l = catList(g).slice(); l.splice(+b.dataset.i, 1); setCats(g, l); }); break; }
       case 'catreset': setCats(b.dataset.g, null); toast('رجعت القائمة الأصلية'); break;
       case 'theme': if (b.dataset.v === 'auto') document.documentElement.removeAttribute('data-theme'); else document.documentElement.setAttribute('data-theme', b.dataset.v); try { localStorage.setItem(KEY + '_theme', b.dataset.v); } catch (e) { } render(); break;
       case 'export': exportJson(); markBackup(); break;
@@ -1898,6 +1907,7 @@ const EN = {'د':'m','س':'h','ص':'p','و':'&',
   $('#menubtn').onclick = () => document.body.classList.toggle('menu');
   $('#scrim').onclick = () => document.body.classList.remove('menu');
   $('#topadd').onclick = () => addChooser();
+  $('#topbk').onclick = () => backupSheet();
   try { const th = localStorage.getItem(KEY + '_theme'); if (th && th !== 'auto') document.documentElement.setAttribute('data-theme', th); } catch (e) { }
   if (state.settings.lang === 'en') setLang('en', true);
   pwaInit();
