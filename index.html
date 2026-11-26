@@ -62,6 +62,7 @@ h2 small a{color:var(--ac);font-size:13px}
 .ck.on{background:var(--ok);border-color:var(--ok)}
 .chip{display:inline-block;padding:2px 9px;border-radius:99px;background:var(--bg3);font-size:12px;color:var(--tx2);white-space:nowrap}
 .chip.ac{background:var(--acbg);color:var(--ac)}.chip.ok{background:#dbeddb;color:#1c3829}.chip.warn{background:#fadec9;color:#6b3a07}
+.fsel{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 8px}.fsel select{flex:1 1 30%;min-width:0;width:auto;padding:7px 6px}
 .chips{display:flex;gap:6px;overflow:auto;padding:4px 0 8px;scrollbar-width:none}
 .chips button{border:1px solid var(--bd);background:var(--bg);padding:5px 12px;border-radius:99px;cursor:pointer;white-space:nowrap;font-size:14px}
 .chips button.on{background:var(--tx);color:var(--bg);border-color:var(--tx)}
@@ -191,12 +192,12 @@ body.locked .app,body.locked .tabs{visibility:hidden}
 @media print{.side,.tabs,.top,.fab,.noprint,.mxmon button{display:none!important}.main{margin:0!important}}
 </style></head><body>
 <div class="app">
-<aside class="side"><div class="brand">📓 سبيلي</div><nav class="nav" id="nav"><a data-nav href="#/">🏠 الرئيسية</a><a data-nav href="#/tasks">✅ المهام</a><a data-nav href="#/habits">🔁 العادات</a><a data-nav href="#/books">📚 الكتب</a><a data-nav href="#/movies">🎬 الأفلام</a><a data-nav href="#/learning">🎓 التعلّم</a><a data-nav href="#/calendar">📆 التقويم</a><a data-nav href="#/plans">📅 الخطط</a><a data-nav href="#/week">📊 الأسبوع</a><a data-nav href="#/goals">🎯 أهداف السنة</a><a data-nav href="#/money">💰 المصاريف</a><a data-nav href="#/report">📈 التقرير الشهري</a><a data-nav href="#/yearplan">🗓 الخطة السنوية</a><a data-nav href="#/settings">⚙️ الإعدادات</a></nav></aside>
+<aside class="side"><div class="brand">📓 سبيلي</div><nav class="nav" id="nav"><a data-nav href="#/">🏠 الرئيسية</a><a data-nav href="#/tasks">✅ المهام</a><a data-nav href="#/habits">🔁 العادات</a><a data-nav href="#/books">📚 الكتب</a><a data-nav href="#/movies">🎬 الأفلام</a><a data-nav href="#/learning">🎓 التعلّم</a><a data-nav href="#/plans">📅 الخطط</a><a data-nav href="#/week">📊 الأسبوع</a><a data-nav href="#/goals">🎯 أهداف السنة</a><a data-nav href="#/money">💰 المصاريف</a><a data-nav href="#/calendar">📆 التقويم</a><a data-nav href="#/report">📈 التقرير الشهري</a><a data-nav href="#/yearplan">🗓 الخطة السنوية</a><a data-nav href="#/settings">⚙️ الإعدادات</a></nav></aside>
 <div class="scrim" id="scrim"></div>
 <div class="main">
-<div class="top"><button class="ib" id="menubtn" aria-label="القائمة">☰</button><b id="top-title">سبيلي</b><button class="ib" id="topbk" aria-label="النسخة الاحتياطية">💾</button><button class="ib" id="topadd" aria-label="إضافة">＋</button></div>
+<div class="top"><button class="ib" id="menubtn" aria-label="القائمة">☰</button><b id="top-title">سبيلي</b><button class="ib" id="topadd" aria-label="إضافة">＋</button></div>
 <div class="wrap" id="view"></div></div></div>
-<nav class="tabs"><a data-nav href="#/"><span>🏠</span>الرئيسية</a><a data-nav href="#/tasks"><span>✅</span>المهام</a><a data-nav href="#/habits"><span>🔁</span>العادات</a><a data-nav href="#/books"><span>📚</span>الكتب</a><a data-nav href="#/movies"><span>🎬</span>الأفلام</a><a data-nav href="#/learning"><span>🎓</span>التعلّم</a><a data-nav href="#/calendar"><span>📆</span>التقويم</a><a data-nav href="#/money"><span>💰</span>المصاريف</a></nav>
+<nav class="tabs"><a data-nav href="#/"><span>🏠</span>الرئيسية</a><a data-nav href="#/tasks"><span>✅</span>المهام</a><a data-nav href="#/habits"><span>🔁</span>العادات</a><a data-nav href="#/books"><span>📚</span>الكتب</a><a data-nav href="#/movies"><span>🎬</span>الأفلام</a><a data-nav href="#/learning"><span>🎓</span>التعلّم</a><a data-nav href="#/money"><span>💰</span>المصاريف</a><a data-nav href="#/calendar"><span>📆</span>التقويم</a></nav>
 <script>/*CORE*/
 const Core = (() => {
   const pad = n => String(n).padStart(2, '0');
@@ -527,9 +528,7 @@ const Core = (() => {
     return `<div class="hrow"><h1>✅ المهام</h1></div>
     <div class="qa"><input id="qat" placeholder="＋ اكتب مهمة جديدة واضغط Enter" maxlength="200"><select id="qaf" aria-label="التكرار">${FREQ.map(([f, l]) => `<option value="${f}" ${f === qaFreq ? 'selected' : ''}>${l}</option>`).join('')}</select><button class="btn pri" data-act="qadd">إضافة</button></div>
     <div class="tool"><input type="search" id="tq" placeholder="ابحث في المهام" value="${esc(tf.q)}"></div>
-    <div class="chips"><span class="muted" style="align-self:center">ترتيب:</span>${chip('tsort', 'def', 'الافتراضي', tf.sort || 'def')}${chip('tsort', 'prio', 'حسب الأولوية', tf.sort || 'def')}</div>
-    <div class="chips">${chip('tfreq', 'all', 'الكل', tf.freq)}${chip('tfreq', 'today', 'النهارده', tf.freq)}${FREQ.map(([f, l]) => chip('tfreq', f, l, tf.freq)).join('')}</div>
-    ${cats.length ? `<div class="chips">${chip('tcat', 'all', 'كل التصنيفات', tf.cat)}${cats.map(c => chip('tcat', c, esc(c), tf.cat)).join('')}</div>` : ''}
+    <div class="fsel"><select data-fsel="tsort" aria-label="ترتيب"><option value="def"${(tf.sort || 'def') === 'def' ? ' selected' : ''}>ترتيب: الافتراضي</option><option value="prio"${tf.sort === 'prio' ? ' selected' : ''}>ترتيب: الأولوية</option></select><select data-fsel="tfreq" aria-label="التكرار"><option value="all"${tf.freq === 'all' ? ' selected' : ''}>كل التكرارات</option><option value="today"${tf.freq === 'today' ? ' selected' : ''}>النهارده</option>${FREQ.map(([f, l]) => `<option value="${f}"${tf.freq === f ? ' selected' : ''}>${l}</option>`).join('')}</select>${cats.length ? `<select data-fsel="tcat" aria-label="التصنيف"><option value="all">كل التصنيفات</option>${cats.map(c => `<option value="${esc(c)}"${tf.cat === c ? ' selected' : ''}>${esc(c)}</option>`).join('')}</select>` : ''}</div>
     ${groups || '<div class="empty"><b>📝</b>مفيش مهام هنا. اكتب مهمة في المربع اللي فوق واضغط «إضافة»</div>'}`;
   }
 
@@ -548,11 +547,8 @@ const Core = (() => {
       : view === 'board' ? `<div class="board">${stl.map(([s, l]) => { const g = items.filter(i => C.statusOf(i) === s); return `<div class="col"><h3>${l} (${g.length})</h3>${g.map(i => `<a class="card" href="#/item/${i.id}">${coverEl(i)}<div class="meta"><div class="nm">${esc(i.title)}</div><div class="muted">${sub(i)}</div></div></a>`).join('') || '<div class="muted" style="padding:6px">فاضي</div>'}</div>`; }).join('')}</div>`
       : `<div class="box list">${items.map(rowItem).join('')}</div>`;
     return `<div class="hrow"><h1>${icon} ${title}</h1><button class="btn pri" data-act="add" data-t="${type}">＋ ${T[type].label} جديد</button></div>
-    ${types.length > 1 ? `<div class="chips">${types.map(t => `<button class="${t === type ? 'on' : ''}" data-act="ctype" data-k="${key}" data-v="${t}">${T[t].icon} ${T[t].plural}</button>`).join('')}</div>` : ''}
     <div class="tool"><input type="search" id="cq" data-k="${key}" placeholder="بحث" value="${esc(q)}"><div class="seg">${[['gallery', '▦'], ['board', '☰'], ['list', '≡'], ['table', '▤']].map(([v, l]) => `<button class="${view === v ? 'on' : ''}" data-act="view" data-t="${type}" data-v="${v}" aria-label="${v}">${l}</button>`).join('')}</div></div>
-    ${stl.length ? `<div class="chips"><button class="${st === 'all' ? 'on' : ''}" data-act="cst" data-k="${key}" data-v="all">الكل</button>${stl.map(([s, l]) => `<button class="${st === s ? 'on' : ''}" data-act="cst" data-k="${key}" data-v="${s}">${l}</button>`).join('')}</div>` : ''}
-    ${['book', 'movie', 'cert', 'playlist'].includes(type) ? (() => { const gs = [...new Set(catList(catGroup(type)).concat(ofType(type).map(i => i.genre).filter(Boolean)))]; return gs.length ? `<div class="chips"><button class="${gsel === 'all' ? 'on' : ''}" data-act="cgn" data-k="${key}" data-v="all">كل الأنواع</button>${gs.map(g => `<button class="${gsel === g ? 'on' : ''}" data-act="cgn" data-k="${key}" data-v="${esc(g)}">${esc(g)}</button>`).join('')}</div>` : ''; })() : ''}
-    ${['cert', 'playlist'].includes(type) ? (() => { const ps = [...new Set(catList('platform').concat(ofType(type).map(i => i.platform).filter(Boolean)))]; return `<div class="chips"><button class="${psel === 'all' ? 'on' : ''}" data-act="cpl" data-k="${key}" data-v="all">كل المنصات</button>${ps.map(g => `<button class="${psel === g ? 'on' : ''}" data-act="cpl" data-k="${key}" data-v="${esc(g)}">${esc(g)}</button>`).join('')}</div>`; })() : ''}
+    ${(() => { const sel = (act, all, cur, opts) => `<select data-fsel="${act}" data-k="${key}" aria-label="${all}"><option value="all">${all}</option>${opts.map(([v, l]) => `<option value="${esc(v)}"${cur === v ? ' selected' : ''}>${l}</option>`).join('')}</select>`; let h = types.length > 1 ? `<select data-fsel="ctype" data-k="${key}" aria-label="النوع">${types.map(t => `<option value="${t}"${t === type ? ' selected' : ''}>${T[t].icon} ${T[t].plural}</option>`).join('')}</select>` : ''; if (stl.length) h += sel('cst', 'كل الحالات', st, stl); if (['book', 'movie', 'cert', 'playlist'].includes(type)) { const gs = [...new Set(catList(catGroup(type)).concat(ofType(type).map(i => i.genre).filter(Boolean)))]; if (gs.length) h += sel('cgn', 'كل الأنواع', gsel, gs.map(g => [g, esc(g)])); } if (['cert', 'playlist'].includes(type)) { const ps = [...new Set(catList('platform').concat(ofType(type).map(i => i.platform).filter(Boolean)))]; if (ps.length) h += sel('cpl', 'كل المنصات', psel, ps.map(g => [g, esc(g)])); } return h ? `<div class="fsel">${h}</div>` : ''; })()}
     ${body}<button class="fab" data-act="add" data-t="${type}" aria-label="إضافة">+</button>`;
   }
 
@@ -701,7 +697,7 @@ const Core = (() => {
   }
 
   // ---------- router ----------
-  const NAV = [['#/', '🏠', 'الرئيسية'], ['#/tasks', '✅', 'المهام'], ['#/habits', '🔁', 'العادات'], ['#/books', '📚', 'الكتب'], ['#/movies', '🎬', 'الأفلام'], ['#/learning', '🎓', 'التعلّم'], ['#/plans', '📅', 'الخطط'], ['#/money', '💰', 'المصاريف'], ['#/report', '📈', 'التقرير الشهري'], ['#/calendar', '📆', 'التقويم'], ['#/week', '📊', 'الأسبوع'], ['#/goals', '🎯', 'أهداف السنة'], ['#/yearplan', '🗓', 'الخطة السنوية'], ['#/settings', '⚙️', 'الإعدادات']];
+  const NAV = [['#/', '🏠', 'الرئيسية'], ['#/tasks', '✅', 'المهام'], ['#/habits', '🔁', 'العادات'], ['#/books', '📚', 'الكتب'], ['#/movies', '🎬', 'الأفلام'], ['#/learning', '🎓', 'التعلّم'], ['#/plans', '📅', 'الخطط'], ['#/money', '💰', 'المصاريف'], ['#/calendar', '📆', 'التقويم'], ['#/report', '📈', 'التقرير الشهري'], ['#/week', '📊', 'الأسبوع'], ['#/goals', '🎯', 'أهداف السنة'], ['#/yearplan', '🗓', 'الخطة السنوية'], ['#/settings', '⚙️', 'الإعدادات']];
   /*FEATURES*/
   /*MONEY*/
   const mx = { tab: 'sum', m: null, draft: null, fcat: '', pasteTxt: '', jsonTxt: '' };
@@ -736,7 +732,7 @@ const Core = (() => {
   const loanLeft = l => r2(mn(l.amt) - (l.pays || []).reduce((s, p) => s + mn(p.amt), 0));
   function mxTabs() {
     const T2 = [['sum', '📊', 'ملخص', 'Summary'], ['buy', '🧾', 'مشتريات', 'Purchases'], ['lists', '🛒', 'قوائم', 'Lists'], ['loans', '🤝', 'سلف', 'Loans'], ['scan', '📷', 'فاتورة', 'Receipt'], ['items', '📈', 'أصناف', 'Items']];
-    return `<div class="chips">${T2.map(t => `<button class="${mx.tab === t[0] ? 'on' : ''}" data-mx="tab" data-a="${t[0]}">${t[1]} ${X(t[2], t[3])}</button>`).join('')}</div>`;
+    return `<div class="fsel"><select data-fsel="mxtab" aria-label="${X('القسم', 'Section')}">${T2.map(t => `<option value="${t[0]}"${mx.tab === t[0] ? ' selected' : ''}>${t[1]} ${X(t[2], t[3])}</option>`).join('')}</select></div>`;
   }
   function mxMonthBar() {
     const k = curM();
@@ -773,7 +769,7 @@ const Core = (() => {
   const ra2 = (a, id, l1, l2) => `<span class="ra"><button class="ib2" data-mx="${a}edit" data-a="${id}" aria-label="${X('تعديل', 'Edit')}">✏️</button><button class="ib2" data-mx="${a}del" data-a="${id}" aria-label="${X('حذف', 'Delete')}">🗑</button></span>`;
   function txRow(t) {
     const its = t.items && t.items.length ? t.items : null;
-    return `<div class="row" style="align-items:flex-start"><div class="t"><b>${money(t.amt)}</b> <span class="chip">${catIcon(t.cat)} ${esc(catName(t.cat))}</span>${t.fx ? ` <span class="chip ac">${X('ثابت', 'Fixed')}</span>` : ''}<span class="muted">${mdf(t.d)}${t.note ? ' · ' + esc(t.note) : ''}${its ? ' · ' + its.length + ' ' + X('صنف', 'items') : ''}</span>${its ? `<details><summary class="muted">${X('الأصناف', 'Items')}</summary>${its.map(i => `<div class="muted">${esc(i.n)} · ${fm(mn(i.q || 1))} × ${fm(mn(i.p))} = <bdi>${fm(lineTot(i))}</bdi></div>`).join('')}</details>` : ''}</div>${ra2('tx', t.id)}</div>`;
+    return `<div class="row" style="align-items:flex-start"><div class="t"><b>${money(t.amt)}</b> <span class="chip">${catIcon(t.cat)} ${esc(catName(t.cat))}</span>${t.fx ? ` <span class="chip ac">${X('ثابت', 'Fixed')}</span>` : ''}${its ? `<div class="itn"><b>${its.slice(0, 2).map(i => esc(i.n) + (its.length === 1 && (mn(i.q || 1) !== 1 || i.u) ? ' <span style="font-weight:400;opacity:.65;white-space:nowrap">· ' + fm(mn(i.q || 1)) + (i.u ? ' ' + esc(i.u) : '') + '</span>' : '')).join('، ')}${its.length > 2 ? ' +' + (its.length - 2) : ''}</b></div>` : ''}<span class="muted">${mdf(t.d)}${t.note ? ' · ' + esc(t.note) : ''}${its && its.length > 1 ? ' · ' + its.length + ' ' + X('صنف', 'items') : ''}</span>${its && its.length > 1 ? `<details><summary class="muted">${X('الأصناف', 'Items')}</summary>${its.map(i => `<div class="muted">${esc(i.n)} · ${fm(mn(i.q || 1))} × ${fm(mn(i.p))} = <bdi>${fm(lineTot(i))}</bdi></div>`).join('')}</details>` : ''}</div>${ra2('tx', t.id)}</div>`;
   }
   function mxBuy() {
     const e = ex(), k = curM(); const cats = [...new Set(e.tx.filter(t => String(t.d).slice(0, 7) === k).map(t => t.cat))];
@@ -800,8 +796,8 @@ const Core = (() => {
     const chip = (a, v, cur2, l) => `<button class="${cur2 === v ? 'on' : ''}" data-mx="${a}" data-a="${v}">${l}</button>`;
     const rows = h.map(o => `<div class="row" style="align-items:flex-start"><div class="t"><b>${esc(o.n)}</b>${o.u ? ' <span class="chip">' + esc(o.u) + '</span>' : ''}<div class="muted">${X('اشتريته', 'Bought')} ${o.times} ${X('مرة', 'times')} · ${X('الكمية', 'Qty')} <bdi>${fm(o.qty)}</bdi>${o.u ? ' ' + esc(o.u) : ''} · ${X('صرفت', 'Spent')} ${money(o.spent)} · ${X('متوسط السعر', 'Avg price')} <bdi>${fm(o.avgP)}</bdi></div>
       <div class="muted">${o.gap != null ? `⏱ ${X('بيكفّي حوالي', 'Lasts about')} <b><bdi>${fm(Math.round(o.gap * 10) / 10)}</bdi></b> ${X('يوم', 'days')}${o.perDay > 0 ? ` · ${X('بتستهلك', 'Use')} <bdi>${fm(Math.round(o.perDay * 100) / 100)}</bdi>${o.u ? ' ' + esc(o.u) : ''} ${X('في اليوم', 'per day')}` : ''} · ${X('آخر شراء', 'Last')} ${mdf(o.last)} · ${X('الشراء الجاي تقريباً', 'Next about')} ${mdf(o.next)}` : X('محتاج شراءتين على الأقل في أيام مختلفة عشان نحسب بيكفّي كام يوم', 'Needs at least two purchases on different days to estimate how long it lasts')}</div></div></div>`).join('');
-    return `<div class="chips">${chip('iper', 30, per, X('٣٠ يوم', '30 days'))}${chip('iper', 90, per, X('٣ شهور', '3 months'))}${chip('iper', 365, per, X('سنة', 'Year'))}${chip('iper', 0, per, X('الكل', 'All'))}</div>
-    <div class="chips" style="margin-top:6px">${chip('isort', 'times', srt, X('الأكتر مرات', 'Most often'))}${chip('isort', 'spent', srt, X('الأكتر فلوس', 'Most money'))}</div>
+    const op = (v, cur2, l) => `<option value="${v}"${cur2 === v ? ' selected' : ''}>${l}</option>`;
+    return `<div class="fsel"><select data-fsel="iper" aria-label="${X('الفترة', 'Period')}">${op(30, per, X('٣٠ يوم', '30 days'))}${op(90, per, X('٣ شهور', '3 months'))}${op(365, per, X('سنة', 'Year'))}${op(0, per, X('الكل', 'All'))}</select><select data-fsel="isort" aria-label="${X('الترتيب', 'Sort')}">${op('times', srt, X('الأكتر مرات', 'Most often'))}${op('spent', srt, X('الأكتر فلوس', 'Most money'))}</select></div>
     <div class="box">${rows || `<p class="muted">${X('لسه مفيش أصناف. سجّل مشتريات واكتب اسم الصنف والكمية والوحدة (أو سجّل فاتورة بالأصناف).', 'No items yet. Record a purchase with the item name, quantity and unit (or record a receipt with items).')}</p>`}</div>
     <p class="muted">${X('الحساب بيقارن بس نفس الصنف بنفس الوحدة، ومبني على الفرق بين أيام الشراء. تقدير مش أكيد: لو خزّنت أو اشتريت من مكان تاني بيبان غلط.', 'Only the same item in the same unit is compared, based on the days between purchases. It is an estimate: stocking up or buying elsewhere makes it inaccurate.')}</p>`;
   }
@@ -1891,6 +1887,7 @@ const EN = {'د':'m','س':'h','ص':'p','و':'&',
   function setCats(g, l) { state.settings.cats = state.settings.cats || {}; if (l) state.settings.cats[g] = l; else delete state.settings.cats[g]; save(); render(); }
   function catAdd(g) { const el = $('#newcat-' + g); const v = el && el.value.trim(); if (!v) return; const l = catList(g).slice(); if (l.includes(v)) { toast('التصنيف موجود'); return; } l.push(v); setCats(g, l); }
   document.addEventListener('change', e => {
+    if (e.target.dataset && e.target.dataset.fsel) { const d = e.target.dataset, v = e.target.value, q0 = qs[d.k] || {}; if (d.fsel === 'ctype') qs[d.k] = Object.assign(q0, { t: v, st: 'all' }); else if (d.fsel === 'cst') qs[d.k] = Object.assign(q0, { st: v }); else if (d.fsel === 'cgn') qs[d.k] = Object.assign(q0, { g: v }); else if (d.fsel === 'cpl') qs[d.k] = Object.assign(q0, { pl: v }); else if (d.fsel === 'tsort') tf.sort = v; else if (d.fsel === 'tfreq') tf.freq = v; else if (d.fsel === 'tcat') tf.cat = v; else if (d.fsel === 'mxtab') mx.tab = v; else if (d.fsel === 'iper') mx.ip = +v; else if (d.fsel === 'isort') mx.is = v; render(); return; }
     if (e.target.dataset && e.target.dataset.te != null && e.target.dataset.id) {
       const it0 = find(e.target.dataset.id); const v0 = e.target.value.trim();
       if (it0 && it0.todos && it0.todos[+e.target.dataset.te]) { if (v0) { it0.todos[+e.target.dataset.te].t = v0; save(); toast('تم التعديل'); } render(); } return;
@@ -1936,7 +1933,6 @@ const EN = {'د':'m','س':'h','ص':'p','و':'&',
   $('#menubtn').onclick = () => document.body.classList.toggle('menu');
   $('#scrim').onclick = () => document.body.classList.remove('menu');
   $('#topadd').onclick = () => addChooser();
-  $('#topbk').onclick = () => backupSheet();
   try { const th = localStorage.getItem(KEY + '_theme'); if (th && th !== 'auto') document.documentElement.setAttribute('data-theme', th); } catch (e) { }
   if (state.settings.lang === 'en') setLang('en', true);
   pwaInit();
