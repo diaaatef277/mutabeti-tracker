@@ -408,7 +408,7 @@ const Core = (() => {
     b.onclick = () => { t.remove(); undo(); }; t.appendChild(b); document.body.appendChild(t); setTimeout(() => t.remove(), 6000);
   }
   function save() {
-    try { localStorage.setItem(KEY, JSON.stringify(state)); }
+    try { localStorage.setItem(KEY, JSON.stringify(state)); try { syncDirty(); } catch (e2) { } }
     catch (e) { if (!memoryOnly) { memoryOnly = true; toast('تعذّر الحفظ (المساحة ممتلئة أو التخزين مقفول)، اعمل نسخة احتياطية'); } }
   }
   function toast(m) { const t = document.createElement('div'); t.className = 'toast'; t.textContent = m; document.body.appendChild(t); setTimeout(() => t.remove(), 2600); }
@@ -691,7 +691,8 @@ const Core = (() => {
     ${['book', 'movie', 'course', 'platform'].map(g => `<div class="fld"><label>${CAT_LABEL[g]}</label><div class="chips" style="flex-wrap:wrap">${catList(g).map((c, i) => `<span class="catrow" style="display:inline-flex;gap:4px;margin:2px"><input data-cr="${g}|${i}" value="${esc(c)}" aria-label="تعديل التصنيف" style="width:7.5em"><button class="btn sm bad" data-act="catdel" data-g="${g}" data-i="${i}" aria-label="حذف">🗑</button></span>`).join('')}</div>
     <div class="tl" style="margin-top:6px"><input type="text" id="newcat-${g}" placeholder="تصنيف جديد واضغط Enter"><button class="btn" data-act="catadd" data-g="${g}">إضافة</button></div>
     <button class="btn sm" data-act="catreset" data-g="${g}" style="margin-top:6px">رجوع للقائمة الأصلية</button></div>`).join('')}</div>
-    <h2>💾 النسخة الاحتياطية</h2><div class="box"><p class="muted">البيانات محفوظة على جهازك فقط. اعمل نسخة احتياطية من وقت للتاني.</p>
+    ${cloudBox()}
+    <h2>💾 النسخة الاحتياطية</h2><div class="box"><p class="muted">${sbSess ? X('البيانات محفوظة على جهازك وعلى حسابك السحابي. ', 'Your data is saved on this device and in your cloud account. ') : 'البيانات محفوظة على جهازك فقط. '}اعمل نسخة احتياطية من وقت للتاني.</p>
     <div class="big-btns"><button class="btn pri" data-act="export">تصدير ملف</button><button class="btn" data-act="showjson">عرض النص للنسخ</button><label class="btn" style="cursor:pointer">استيراد ملف<input type="file" id="ifile" accept=".json,.txt,application/json,text/plain" hidden></label>${hasPrev() ? '<button class="btn" data-act="restoreprev">استرجاع نسخة ما قبل الاستيراد</button>' : ''}${hasRawBk() ? '<button class="btn" data-act="dlraw">تنزيل نسخة الاسترجاع</button>' : ''}</div>
     <div id="jsonbox"></div></div>
     <h2>🧪 بيانات</h2><div class="box"><div class="big-btns"><button class="btn" data-act="demo">إضافة بيانات تجريبية</button><button class="btn bad" data-act="wipe">مسح كل البيانات</button></div></div>
@@ -1931,6 +1932,135 @@ const EN = {'د':'m','س':'h','ص':'p','و':'&',
     else if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
     else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
   });
+  // ---------- cloud sync (Supabase) ----------
+  const SBU = 'https://vflpbpjxxpyqobksabde.supabase.co', SBK = 'sb_publishable_SfXmk38uQDNN2m5FwP2dtg_uRIkcdL0';
+  const SKEY = KEY + '_sb', MKEY = KEY + '_sbmeta';
+  let sbSess = null, sbMeta = { rev: 0, uid: null, dirty: false, last: 0 }, sbBusy = false, sbMsg = '', sbT = null, sbVer = 0, sbSent = '';
+  try { sbSess = JSON.parse(localStorage.getItem(SKEY) || 'null'); } catch (e) { }
+  try { sbMeta = Object.assign(sbMeta, JSON.parse(localStorage.getItem(MKEY) || 'null') || {}); } catch (e) { }
+  const sbSaveMeta = () => { try { localStorage.setItem(MKEY, JSON.stringify(sbMeta)); } catch (e) { } };
+  const sbSaveSess = () => { try { if (sbSess) localStorage.setItem(SKEY, JSON.stringify(sbSess)); else localStorage.removeItem(SKEY); } catch (e) { } };
+  const sbJson = () => { const s = Object.assign({}, state); delete s.fresh; return JSON.stringify(s); };
+  async function sbFetch(path, opt) {
+    opt = opt || {};
+    const r = await fetch(SBU + path, Object.assign({ cache: 'no-store' }, opt, { headers: Object.assign({ apikey: SBK, 'Content-Type': 'application/json' }, opt.headers || {}) }));
+    const ct = r.headers.get('content-type') || '';
+    if (!ct.includes('json')) throw new Error('net');
+    let j = null; try { j = await r.json(); } catch (e) { }
+    return { ok: r.ok, status: r.status, json: j };
+  }
+  function sbSetSess(j) { sbSess = { at: j.access_token, rt: j.refresh_token, exp: Date.now() + (j.expires_in || 3600) * 1000, uid: j.user && j.user.id, email: j.user && j.user.email }; sbSaveSess(); }
+  async function sbToken() {
+    if (!sbSess) return null;
+    if (Date.now() > sbSess.exp - 60000) {
+      const r = await sbFetch('/auth/v1/token?grant_type=refresh_token', { method: 'POST', body: JSON.stringify({ refresh_token: sbSess.rt }) });
+      if (r.ok && r.json && r.json.access_token) sbSetSess(r.json);
+      else if (r.status === 400 || r.status === 401) { sbSess = null; sbSaveSess(); return null; }
+      else throw new Error('net');
+    }
+    return sbSess.at;
+  }
+  function sbMerge(a, b) { // a wins on same id; everything only in b is kept too
+    const ids = new Set(a.items.map(i => i.id)); const items = a.items.concat(b.items.filter(i => !ids.has(i.id)));
+    const lk = new Set(a.log.map(l => l.d + '|' + l.id)); const log = a.log.concat(b.log.filter(l => !lk.has(l.d + '|' + l.id)));
+    return C.validate(Object.assign({}, b, a, { items, log, settings: Object.assign({}, b.settings, a.settings) }));
+  }
+  function sbApplyLocal(v) {
+    state = v; try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) { }
+    const ae = document.activeElement;
+    if (!$('#sheet') && !(ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName))) render();
+  }
+  const sbEmpty = () => !state.items.length && !(state.log && state.log.length);
+  function sbStat(t) { sbMsg = t; const el = $('#sbstat'); if (el) el.textContent = sbStatText(); }
+  function sbStatText() {
+    if (!sbSess) return '';
+    if (sbMsg === 'busy') return X('بيتزامن...', 'Syncing...');
+    if (sbMsg === 'off') return X('مفيش نت دلوقتي. التعديلات متحفوظة على الجهاز وهتتزامن أول ما النت يرجع.', 'Offline. Changes are saved on this device and will sync when you are back online.');
+    if (sbMsg === 'err') return X('حصلت مشكلة في المزامنة. التعديلات لسه على جهازك، وهنحاول تاني.', 'Sync problem. Your changes are still on this device; will retry.');
+    if (sbMsg === 'out') return X('الجلسة انتهت، سجّل دخول تاني.', 'Session ended, please sign in again.');
+    const t = sbMeta.last ? new Date(sbMeta.last).toLocaleTimeString(isEn() ? 'en-US' : 'ar-EG-u-nu-latn', { hour: '2-digit', minute: '2-digit' }) : '';
+    return (sbMeta.dirty ? X('فيه تعديلات لسه متتزامنتش', 'Changes pending sync') : X('متزامن ✓', 'Synced ✓')) + (t ? ' · ' + t : '');
+  }
+  function syncDirty() {
+    if (!sbSess) return;
+    const j = sbJson(); if (j === sbSent) return;
+    sbSent = j; sbMeta.dirty = true; sbVer++; sbSaveMeta();
+    clearTimeout(sbT); sbT = setTimeout(sbSync, 1500);
+  }
+  async function sbSync() {
+    if (!sbSess || sbBusy) return;
+    if (navigator.onLine === false) { sbStat('off'); return; }
+    sbBusy = true; sbStat('busy');
+    try {
+      for (let round = 0; round < 3; round++) {
+        const tok = await sbToken(); if (!tok) { sbStat('out'); return; }
+        const H = { Authorization: 'Bearer ' + tok };
+        const g = await sbFetch('/rest/v1/app_state?select=data,rev&user_id=eq.' + sbSess.uid, { headers: H });
+        if (!g.ok) throw new Error('srv');
+        const row = g.json && g.json[0];
+        const same = sbMeta.uid === sbSess.uid;
+        if (!row) {
+          if (sbEmpty() && !same) { sbMeta = { rev: 0, uid: sbSess.uid, dirty: false, last: Date.now() }; sbSaveMeta(); sbSent = sbJson(); break; }
+          try { localStorage.setItem(KEY + '_presync', JSON.stringify(state)); } catch (e) { }
+          const ver = sbVer;
+          const p = await sbFetch('/rest/v1/app_state', { method: 'POST', headers: Object.assign({ Prefer: 'return=representation' }, H), body: JSON.stringify({ user_id: sbSess.uid, data: JSON.parse(sbJson()), rev: 1 }) });
+          if (p.status === 409) continue;
+          if (!p.ok) throw new Error('srv');
+          sbSent = sbJson(); sbMeta = { rev: 1, uid: sbSess.uid, dirty: ver !== sbVer, last: Date.now() }; sbSaveMeta();
+          if (sbMeta.dirty) continue; break;
+        }
+        const remote = C.validate(row.data); if (!remote) throw new Error('srv');
+        if (!same) {
+          if (sbEmpty()) { sbApplyLocal(remote); sbMeta = { rev: row.rev, uid: sbSess.uid, dirty: false, last: Date.now() }; sbSent = sbJson(); sbSaveMeta(); break; }
+          try { localStorage.setItem(KEY + '_presync', JSON.stringify(state)); } catch (e) { }
+          const m = sbMerge(remote, state); if (!m) throw new Error('srv');
+          sbApplyLocal(m); sbMeta = { rev: row.rev, uid: sbSess.uid, dirty: sbJson() !== JSON.stringify(row.data) && true, last: Date.now() }; sbSaveMeta();
+        } else if (row.rev > sbMeta.rev) {
+          if (sbMeta.dirty) { const m = sbMerge(state, remote); if (!m) throw new Error('srv'); sbApplyLocal(m); sbMeta.dirty = true; }
+          else { sbApplyLocal(remote); sbSent = sbJson(); }
+          sbMeta.rev = row.rev; sbMeta.last = Date.now(); sbSaveMeta();
+        } else if (!sbMeta.dirty) { sbMeta.last = Date.now(); sbSaveMeta(); break; }
+        if (!sbMeta.dirty) break;
+        const ver = sbVer, base = sbMeta.rev; const payload = sbJson();
+        const u = await sbFetch('/rest/v1/app_state?user_id=eq.' + sbSess.uid + '&rev=eq.' + base, { method: 'PATCH', headers: Object.assign({ Prefer: 'return=representation' }, H), body: JSON.stringify({ data: JSON.parse(payload), rev: base + 1, updated_at: new Date().toISOString() }) });
+        if (!u.ok) throw new Error('srv');
+        if (!u.json || !u.json.length) continue; // someone else wrote first: pull, merge, retry
+        sbSent = payload; sbMeta.rev = base + 1; sbMeta.last = Date.now(); sbMeta.dirty = ver !== sbVer; sbSaveMeta();
+        if (!sbMeta.dirty) break;
+      }
+      sbStat('');
+    } catch (e) { sbStat(navigator.onLine === false || (e && e.message === 'net') || (e && e.name === 'TypeError') ? 'off' : 'err'); }
+    finally { sbBusy = false; }
+  }
+  async function sbLogin() {
+    const em = ($('#sbem') || {}).value, pw = ($('#sbpw') || {}).value; const m = $('#sbmsg');
+    if (!em || !pw) { if (m) m.textContent = X('اكتب الإيميل والباسورد', 'Enter email and password'); return; }
+    if (m) m.textContent = X('بيسجّل دخول...', 'Signing in...');
+    try {
+      const r = await sbFetch('/auth/v1/token?grant_type=password', { method: 'POST', body: JSON.stringify({ email: em.trim(), password: pw }) });
+      if (!r.ok || !r.json || !r.json.access_token) { if (m) m.textContent = X('الإيميل أو الباسورد غلط', 'Wrong email or password'); return; }
+      sbSetSess(r.json); sbMsg = ''; toast(X('اتسجّل الدخول، بيتزامن...', 'Signed in, syncing...')); render(); await sbSync(); render();
+    } catch (e) { if (m) m.textContent = X('مفيش اتصال بالنت', 'No internet connection'); }
+  }
+  async function sbLogout() {
+    if (!window.confirm(X('هتخرج من الحساب السحابي. بياناتك هتفضل على الجهاز ده، ومش هتتزامن لحد ما تسجّل دخول تاني. تكمل؟', 'Sign out of cloud sync? Your data stays on this device but will not sync until you sign in again.'))) return;
+    try { if (sbSess) await sbFetch('/auth/v1/logout', { method: 'POST', headers: { Authorization: 'Bearer ' + sbSess.at } }); } catch (e) { }
+    sbSess = null; sbSaveSess(); sbMsg = ''; render();
+  }
+  function cloudBox() {
+    const h = `<h2>☁️ ${X('الحفظ السحابي', 'Cloud sync')}</h2><div class="box">`;
+    if (sbSess) return h + `<p class="muted">${X('متصل بحساب', 'Signed in as')} <b dir="ltr">${esc(sbSess.email || '')}</b><br><span id="sbstat">${esc(sbStatText())}</span></p><div class="big-btns"><button class="btn pri" data-sb="now">${X('زامن دلوقتي', 'Sync now')}</button><button class="btn" data-sb="out">${X('تسجيل الخروج', 'Sign out')}</button></div></div>`;
+    return h + `<p class="muted">${X('سجّل دخول عشان بياناتك تتحفظ على السحابة وتظهر على كل أجهزتك. التطبيق بيفضل شغال على الجهاز حتى من غير نت.', 'Sign in to save your data in the cloud and see it on all your devices. The app keeps working on this device even offline.')}</p>
+    <div class="fld"><label>${X('الإيميل', 'Email')}</label><input id="sbem" type="email" autocomplete="username" dir="ltr"></div>
+    <div class="fld"><label>${X('الباسورد', 'Password')}</label><input id="sbpw" type="password" autocomplete="current-password" dir="ltr"></div>
+    <div class="big-btns"><button class="btn pri" data-sb="in">${X('تسجيل الدخول', 'Sign in')}</button></div><p class="muted" id="sbmsg"></p></div>`;
+  }
+  document.addEventListener('click', e => { const b = e.target.closest && e.target.closest('[data-sb]'); if (!b) return; const a = b.dataset.sb; if (a === 'in') sbLogin(); else if (a === 'out') sbLogout(); else if (a === 'now') { sbMeta.dirty = sbMeta.dirty || sbJson() !== sbSent; sbSync().then(() => { const el = $('#sbstat'); if (el) el.textContent = sbStatText(); }); } });
+  document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target && e.target.id === 'sbpw') sbLogin(); });
+  window.addEventListener('online', () => sbSync());
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) sbSync(); });
+  setInterval(() => { if (!document.hidden) sbSync(); }, 60000);
+  if (sbSess) { sbSent = sbMeta.dirty ? '' : sbJson(); setTimeout(sbSync, 400); }
   window.__app = { get state() { return state; }, Core: C, render, go };
   render();
   if (pinRec()) showLock();
