@@ -307,11 +307,37 @@ const Core = (() => {
     if (i.quotes != null) i.quotes = Array.isArray(i.quotes) ? i.quotes.filter(x => x && typeof x === 'object').map(x => ({ t: String(x.t == null ? '' : x.t) })) : [];
     return i;
   };
+  const validId = v => typeof v === 'string' && /^[A-Za-z0-9_-]{1,80}$/.test(v);
+  const validDate = v => v == null || v === '' || v === '0000-00-00' || (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(Date.parse(v + 'T12:00:00Z')) && new Date(v + 'T12:00:00Z').toISOString().slice(0, 10) === v);
+  const safeUrl = v => v == null || v === '' || (typeof v === 'string' && ((v.length <= 2048 && /^https?:\/\//i.test(v)) || (v.length <= 8388608 && /^data:image\/(?:png|jpeg|webp|gif);base64,[a-z0-9+/=]+$/i.test(v))));
+  const validRecord = o => o && typeof o === 'object' && !Array.isArray(o) && validId(o.id);
   const validate = data => {
-    if (!data || typeof data !== 'object' || !Array.isArray(data.items)) return null;
+    if (!data || typeof data !== 'object' || Array.isArray(data) || !Array.isArray(data.items)) return null;
     const ok = ['task', 'habit', 'book', 'movie', 'playlist', 'cert', 'plan'];
-    const items = data.items.filter(i => i && typeof i === 'object' && ok.includes(i.type) && typeof i.id === 'string' && typeof i.title === 'string').map(fixItem);
-    return { v: 2, items, log: Array.isArray(data.log) ? data.log.filter(l => l && typeof l.d === 'string' && typeof l.id === 'string') : [], settings: Object.assign({ name: '', views: {} }, data.settings || {}), exp: (data.exp && typeof data.exp === 'object' && !Array.isArray(data.exp)) ? data.exp : undefined };
+    const dateKeys = ['created','due','date','sdate','edate','expiry','doneDate'];
+    const numKeys = ['pages','read','pace','total','watched','rating','year','price'];
+    const items = data.items.filter(i => {
+      if (!validRecord(i) || !ok.includes(i.type) || typeof i.title !== 'string' || !i.title.trim() || i.title.length > 500) return false;
+      if (dateKeys.some(k => i[k] != null && !validDate(i[k]))) return false;
+      if (numKeys.some(k => i[k] != null && i[k] !== '' && (!Number.isFinite(Number(i[k])) || Number(i[k]) < 0 || Number(i[k]) > 1000000000))) return false;
+      if (!safeUrl(i.url) || !safeUrl(i.link) || !safeUrl(i.cover)) return false;
+      if (i.done != null && (typeof i.done !== 'object' || Array.isArray(i.done))) return false;
+      return true;
+    }).map(fixItem);
+    const settings = Object.assign({ name: '', views: {} }, data.settings && typeof data.settings === 'object' && !Array.isArray(data.settings) ? data.settings : {});
+    const log = Array.isArray(data.log) ? data.log.filter(l => l && typeof l === 'object' && validId(l.id) && validDate(l.d) && (l.k == null || typeof l.k === 'string')) : [];
+    if (Array.isArray(settings._tombstones)) settings._tombstones = settings._tombstones.filter(x => x && typeof x.kind === 'string' && x.kind.length <= 32 && validId(x.id) && (x.at == null || Number.isFinite(Number(x.at))));
+    let exp = data.exp && typeof data.exp === 'object' && !Array.isArray(data.exp) ? data.exp : undefined;
+    if (exp) {
+      exp = Object.assign({}, exp);
+      const arrays = ['inc','loans','tx','lists','fixed','errands','errTpl'];
+      arrays.forEach(k => { if (Array.isArray(exp[k])) exp[k] = exp[k].filter(validRecord); });
+      ['inc','tx','loans'].forEach(k => { if (Array.isArray(exp[k])) exp[k] = exp[k].filter(x => x.d != null && validDate(x.d) && x.amt != null && Number.isFinite(Number(x.amt)) && Number(x.amt) >= 0 && Number(x.amt) <= 1000000000000); });
+      (exp.tx || []).forEach(x => { if (Array.isArray(x.items)) x.items = x.items.filter(i => i && typeof i.n === 'string' && i.n.trim() && i.n.length <= 500 && Number.isFinite(Number(i.q == null ? 1 : i.q)) && Number(i.q == null ? 1 : i.q) > 0 && Number.isFinite(Number(i.p)) && Number(i.p) >= 0 && Number(i.p) <= 1000000000); });
+      (exp.loans || []).forEach(x => { if (Array.isArray(x.pays)) x.pays = x.pays.filter(p => validRecord(p) && (p.d == null || validDate(p.d)) && Number.isFinite(Number(p.amt)) && Number(p.amt) >= 0 && Number(p.amt) <= 1000000000000); });
+      (exp.lists || []).forEach(x => { if (Array.isArray(x.items)) x.items = x.items.filter(i => validRecord(i) && typeof i.n === 'string' && i.n.trim() && i.n.length <= 500 && Number.isFinite(Number(i.q == null ? 1 : i.q)) && Number(i.q == null ? 1 : i.q) >= 0 && Number.isFinite(Number(i.p == null ? 0 : i.p)) && Number(i.p == null ? 0 : i.p) >= 0); });
+    }
+    return { v: 2, items, log, settings, exp };
   };
   return { pad, ymd, parse, addDays, weekStart, daysBetween, periodKey, prevPeriod, isDone, streak, showsToday, toggleTask, progress, statusOf, bump, remaining, finishDate, daysLeft, topicsPerDay, maxStreak, activity, validate, clamp, num };
 })();
@@ -1069,7 +1095,7 @@ const Core = (() => {
     <div class="big-btns"><button class="btn pri" data-mx="epsave" data-a="${id}">${X('تأكيد', 'Confirm')}</button><button class="btn" data-act="closesheet">${X('إلغاء', 'Cancel')}</button></div>`);
     setTimeout(() => { const e = $('#mxep-p'); if (e) e.focus(); }, 50);
   }
-  function errandUndo(x) { const e = ex(); e.tx = e.tx.filter(t => t.er !== x.id); x.done = false; delete x.bd; }
+  function errandUndo(x) { const e = ex(); e.tx.filter(t => t.er === x.id).forEach(t => addTombstone('tx', t.id)); e.tx = e.tx.filter(t => t.er !== x.id); x.done = false; delete x.bd; }
   function errandSheet(id) {
     const x = erq().find(z => z.id === id); if (!x) return;
     sheet(`<h3>✏️ ${X('تعديل الطلب', 'Edit request')}</h3><div class="fld"><label>${X('الصنف', 'Item')}</label><input id="mxee-n" value="${esc(x.n)}" maxlength="80"></div><div class="fld"><label>${X('الكمية', 'Qty')}</label><input id="mxee-q" inputmode="decimal" value="${x.q || 1}"></div>
@@ -1142,43 +1168,43 @@ const Core = (() => {
       case 'mon': mx.m = mshift(curM(), +v); render(); break;
       case 'fcat': mx.fcat = v; render(); break;
       case 'demo': mxDemo(); break;
-      case 'wipe': if (cf(X('تمسح كل بيانات المصاريف؟ (باقي التطبيق مش هيتأثر)', 'Erase all expenses data? (the rest of the app is untouched)'))) { delete state.exp; mx.draft = null; save(); render(); } break;
+      case 'wipe': if (cf(X('تمسح كل بيانات المصاريف؟ (باقي التطبيق مش هيتأثر)', 'Erase all expenses data? (the rest of the app is untouched)'))) { if (state.exp) ['inc','loans','tx','lists','fixed','errands','errTpl'].forEach(k => (state.exp[k] || []).forEach(x => addTombstone(k, x.id))); delete state.exp; mx.draft = null; save(); render(); } break;
       case 'incadd': incSheet(v); break;
       case 'incedit': incSheet('', v); break;
-      case 'incdel': if (cf(X('تحذف؟', 'Delete?'))) { e.inc = e.inc.filter(x => x.id !== v); save(); render(); } break;
+      case 'incdel': if (cf(X('تحذف؟', 'Delete?'))) { e.inc = e.inc.filter(x => x.id !== v); addTombstone('inc', v); save(); render(); } break;
       case 'isave': { const [id, kind] = v.split('|'); const amt = mn($('#mxi-a').value); if (!(amt > 0)) { toast(X('اكتب المبلغ', 'Enter the amount')); return; } const o = { amt, d: $('#mxi-d').value || today(), note: $('#mxi-n').value.trim(), kind }; if (id) Object.assign(e.inc.find(x => x.id === id), o); else e.inc.push(Object.assign({ id: uid() }, o)); mx.m = o.d.slice(0, 7); save(); closeSheet(); render(); break; }
       case 'buyadd': buySheet(); break;
       case 'txedit': { const t = e.tx.find(x => x.id === v); if (!t) break; if (t.items && t.items.length) newDraft({ items: t.items.map(i => Object.assign({}, i)), date: t.d, store: t.note, cat: t.cat }, t.src || 'manual', { editId: t.id }); else buySheet(v); break; }
-      case 'txdel': { const t = e.tx.find(x => x.id === v); if (t && cf(X('تحذف المشتريات دي؟', 'Delete this purchase?'))) { if (t.fx) { e.fxskip = e.fxskip || []; e.fxskip.push(t.fx + '|' + t.fm); } if (t.er) { const x = erq().find(z => z.id === t.er); if (x) { x.done = false; delete x.bd; } } e.tx = e.tx.filter(x => x.id !== v); save(); render(); } break; }
+      case 'txdel': { const t = e.tx.find(x => x.id === v); if (t && cf(X('تحذف المشتريات دي؟', 'Delete this purchase?'))) { if (t.fx) { e.fxskip = e.fxskip || []; e.fxskip.push(t.fx + '|' + t.fm); } if (t.er) { const x = erq().find(z => z.id === t.er); if (x) { x.done = false; delete x.bd; } } e.tx = e.tx.filter(x => x.id !== v); addTombstone('tx', v); save(); render(); } break; }
       case 'bsave2': { const amt = mn($('#mxb2-a').value); if (!(amt > 0)) { toast(X('اكتب المبلغ', 'Enter the amount')); return; } const o = { amt, cat: $('#mxb2-c').value, note: $('#mxb2-n').value.trim(), d: $('#mxb2-d').value || today() }; { const inm = $('#mxb2-i'); if (inm) { const nm = inm.value.trim(); const q0 = mn(($('#mxb2-q') || {}).value); const q = q0 > 0 ? q0 : 1; if (nm) o.items = [{ n: nm, q, u: (($('#mxb2-u') || {}).value || '').trim(), p: Math.round(amt / q * 10000) / 10000 }]; else if (v) { const old = e.tx.find(x => x.id === v); if (old && old.items && old.items.length === 1) delete old.items; } } } if (v) Object.assign(e.tx.find(x => x.id === v), o); else e.tx.push(Object.assign({ id: uid(), src: 'manual' }, o)); mx.m = o.d.slice(0, 7); save(); closeSheet(); render(); break; }
       case 'bsave': budgetSave(); break;
       case 'budget': budgetSheet(); break;
       case 'fadd': fixedSheet(); break;
       case 'fedit': fixedSheet(v); break;
-      case 'fdel': if (cf(X('تحذف المصروف الثابت؟ (المشتريات اللي اتسجلت قبل كده فاضلة)', 'Delete this fixed expense? (past purchases stay)'))) { e.fixed = e.fixed.filter(x => x.id !== v); save(); render(); } break;
+      case 'fdel': if (cf(X('تحذف المصروف الثابت؟ (المشتريات اللي اتسجلت قبل كده فاضلة)', 'Delete this fixed expense? (past purchases stay)'))) { e.fixed = e.fixed.filter(x => x.id !== v); addTombstone('fixed', v); save(); render(); } break;
       case 'fsave': fixedSave(v); break;
       case 'ladd': loanSheet(); break;
       case 'ledit': loanSheet(v); break;
-      case 'ldel': if (cf(X('تحذف السلفة وكل دفعاتها؟', 'Delete this loan and its payments?'))) { e.loans = e.loans.filter(x => x.id !== v); save(); render(); } break;
+      case 'ldel': if (cf(X('تحذف السلفة وكل دفعاتها؟', 'Delete this loan and its payments?'))) { e.loans = e.loans.filter(x => x.id !== v); addTombstone('loans', v); save(); render(); } break;
       case 'lsave': loanSave(v); break;
       case 'pay': paySheet(v); break;
       case 'psave': { const l = e.loans.find(x => x.id === v), amt = mn($('#mxp-a').value); if (!l || !(amt > 0)) { toast(X('اكتب المبلغ', 'Enter the amount')); return; } if (amt > loanLeft(l) + 0.005 && !cf(X('المبلغ أكبر من المتبقي. تكمل؟', 'More than the remaining amount. Continue?'))) return; l.pays = l.pays || []; l.pays.push({ id: uid(), d: $('#mxp-d').value || today(), amt }); save(); closeSheet(); render(); break; }
-      case 'pdel': { const [li, pi] = v.split('|'); const l = e.loans.find(x => x.id === li); if (l && cf(X('تحذف الدفعة؟', 'Delete this payment?'))) { l.pays = l.pays.filter(x => x.id !== pi); save(); render(); } break; }
+      case 'pdel': { const [li, pi] = v.split('|'); const l = e.loans.find(x => x.id === li); if (l && cf(X('تحذف الدفعة؟', 'Delete this payment?'))) { l.pays = l.pays.filter(x => x.id !== pi); addTombstone('pays', pi); save(); render(); } break; }
       case 'lnew': { const t = $('#mxl-title').value.trim(); if (!t) { toast(X('اكتب اسم القائمة', 'Enter a list name')); return; } e.lists.push({ id: uid(), title: t, cat: $('#mxl-cat').value, items: [] }); save(); render(); break; }
       case 'lpre': { const names = (isEn() ? PRE_EN : PRESET)[v]; e.lists.push({ id: uid(), title: X(v === 'food' ? 'بقالة' : v === 'med' ? 'علاج' : 'باقات وتجديدات', v === 'food' ? 'Groceries' : v === 'med' ? 'Medicine' : 'Plan renewals'), cat: v, items: names.map(n => ({ id: uid(), n, q: 1, p: 0, ck: false })) }); save(); render(); break; }
-      case 'lstdel': if (cf(X('تحذف القائمة؟', 'Delete the list?'))) { e.lists = e.lists.filter(x => x.id !== v); save(); render(); } break;
+      case 'lstdel': if (cf(X('تحذف القائمة؟', 'Delete the list?'))) { e.lists = e.lists.filter(x => x.id !== v); addTombstone('lists', v); save(); render(); } break;
       case 'liadd': addListItem(v); break;
       case 'lck': { const [li, ii] = v.split('|'); const it = (e.lists.find(x => x.id === li) || { items: [] }).items.find(x => x.id === ii); if (it) { it.ck = !it.ck; save(); render(); } break; }
-      case 'lidel': { const [li, ii] = v.split('|'); const l = e.lists.find(x => x.id === li); if (l) { l.items = l.items.filter(x => x.id !== ii); save(); render(); } break; }
+      case 'lidel': { const [li, ii] = v.split('|'); const l = e.lists.find(x => x.id === li); if (l) { l.items = l.items.filter(x => x.id !== ii); addTombstone('listitems', ii); save(); render(); } break; }
       case 'lbuy': { const l = e.lists.find(x => x.id === v); if (!l) break; const ck = l.items.filter(i => i.ck); const noP = ck.filter(i => !(mn(i.p) > 0)).length; const items = ck.filter(i => mn(i.p) > 0).map(i => ({ n: i.n, q: mn(i.q) > 0 ? mn(i.q) : 1, p: mn(i.p) })); if (!items.length) { toast(X('اكتب سعر الأصناف المعلّمة الأول', 'Enter prices for the checked items first')); return; } e.tx.push({ id: uid(), d: today(), amt: itemsSum(items), cat: l.cat, note: l.title, items, src: 'list' }); l.items = l.items.filter(i => !i.ck || !(mn(i.p) > 0)); mx.m = today().slice(0, 7); save(); toast(X('اتسجلت المشتريات', 'Purchase recorded') + (noP ? X(` (${noP} من غير سعر فضلوا في القائمة)`, ` (${noP} without price stayed on the list)`) : '')); render(); break; }
       case 'eadd': { const n = $('#mxe-n').value.trim(); if (!n) { toast(X('اكتب الصنف', 'Enter the item')); return; } const o = { n, q: mn($('#mxe-q').value) > 0 ? mn($('#mxe-q').value) : 1, cat: $('#mxe-c').value, store: $('#mxe-s').value, who: $('#mxe-w').value.trim(), prio: $('#mxe-p').value }; const rec = $('#mxe-r').checked; const x = Object.assign({ id: uid(), done: false, d: today() }, o); if (rec) { e.errTpl = e.errTpl || []; const tid = uid(); e.errTpl.push(Object.assign({ id: tid, on: true }, o)); e.tplDone = e.tplDone || []; e.tplDone.push(tid + '|' + mkey(now())); x.tpl = tid; } erq().unshift(x); save(); render(); break; }
-      case 'tpldel': e.errTpl = (e.errTpl || []).filter(t => t.id !== v); save(); render(); break;
+      case 'tpldel': e.errTpl = (e.errTpl || []).filter(t => t.id !== v); addTombstone('errTpl', v); save(); render(); break;
       case 'hhb': { const cur0 = mn(e.hhBudget) || ''; const r = window.prompt(X('ميزانية مشتريات البيت الشهرية (اكتب 0 للإلغاء)', 'Monthly household shopping budget (0 to remove)'), cur0); if (r !== null) { e.hhBudget = Math.max(0, mn(r)); save(); render(); } break; }
       case 'ef': { const [k, val] = v.split('|'); mx.ef = Object.assign({}, mx.ef || {}, { [k]: val }); render(); break; }
       case 'eck': { const x = erq().find(z => z.id === v); if (!x) break; if (x.done) { if (cf(X('تلغي علامة "اتشترى" وتشيل المشتريات المرتبطة؟', 'Un-mark as bought and remove its purchase?'))) { errandUndo(x); save(); render(); } } else errandPaySheet(v); break; }
-      case 'epsave': { const x = erq().find(z => z.id === v); const p = mn($('#mxep-p').value), q = mn($('#mxep-q').value) > 0 ? mn($('#mxep-q').value) : 1; if (!x || !(p > 0)) { toast(X('اكتب السعر', 'Enter the price')); return; } const d = $('#mxep-d').value || today(); x.q = q; x.p = p; x.done = true; x.bd = d; e.tx = e.tx.filter(t => t.er !== x.id); e.tx.push({ id: uid(), d, amt: lineTot(x), cat: x.cat, note: stName(x.store) + (x.who ? ' · ' + x.who : ''), items: [{ n: x.n, q, p }], src: 'errand', er: x.id }); mx.m = d.slice(0, 7); save(); closeSheet(); toast(X('اتسجل وخُصم من المرتب', 'Recorded and deducted')); render(); break; }
+      case 'epsave': { const x = erq().find(z => z.id === v); const p = mn($('#mxep-p').value), q = mn($('#mxep-q').value) > 0 ? mn($('#mxep-q').value) : 1; if (!x || !(p > 0)) { toast(X('اكتب السعر', 'Enter the price')); return; } const d = $('#mxep-d').value || today(); x.q = q; x.p = p; x.done = true; x.bd = d; e.tx.filter(t => t.er === x.id).forEach(t => addTombstone('tx', t.id)); e.tx = e.tx.filter(t => t.er !== x.id); e.tx.push({ id: uid(), d, amt: lineTot(x), cat: x.cat, note: stName(x.store) + (x.who ? ' · ' + x.who : ''), items: [{ n: x.n, q, p }], src: 'errand', er: x.id }); mx.m = d.slice(0, 7); save(); closeSheet(); toast(X('اتسجل وخُصم من المرتب', 'Recorded and deducted')); render(); break; }
       case 'eedit': errandSheet(v); break;
-      case 'edel': { const x = erq().find(z => z.id === v); if (x && cf(X('تحذف الطلب؟ (لو اتشترى، مشترياته هتتشال كمان)', 'Delete the request? (if bought, its purchase is removed too)'))) { if (x.done) errandUndo(x); e.errands = e.errands.filter(z => z.id !== v); save(); render(); } break; }
+      case 'edel': { const x = erq().find(z => z.id === v); if (x && cf(X('تحذف الطلب؟ (لو اتشترى، مشترياته هتتشال كمان)', 'Delete the request? (if bought, its purchase is removed too)'))) { if (x.done) errandUndo(x); e.errands = e.errands.filter(z => z.id !== v); addTombstone('errands', v); save(); render(); } break; }
       case 'eesave': { const x = erq().find(z => z.id === v); const n = $('#mxee-n').value.trim(); if (!x || !n) return; Object.assign(x, { n, q: mn($('#mxee-q').value) > 0 ? mn($('#mxee-q').value) : 1, cat: $('#mxee-c').value, store: $('#mxee-s').value, who: $('#mxee-w').value.trim(), prio: $('#mxee-p').value }); const pe = $('#mxee-p'); if (pe && x.done && mn(pe.value) > 0) x.p = mn(pe.value); if (x.done) { const t = e.tx.find(z => z.er === x.id); if (t) { t.amt = lineTot(x); t.cat = x.cat; t.note = stName(x.store) + (x.who ? ' · ' + x.who : ''); t.items = [{ n: x.n, q: x.q, p: x.p }]; } } save(); closeSheet(); render(); break; }
       case 'parse': { const r = parseText($('#mx-paste').value); if (!r.items.length) { toast(X('مقدرتش ألاقي أصناف. اكتب سطر لكل صنف: الاسم ثم السعر', 'No items found. One line per item: name then price')); return; } newDraft(r, 'paste'); break; }
       case 'jimp': { try { const r = parseJsonImport($('#mx-json').value); if (!r.items.length) throw 0; newDraft(r, 'json'); } catch (x) { toast(X('الـ JSON مش مظبوط أو مفيش أصناف بأسعار', 'JSON is invalid or has no priced items')); } break; }
@@ -1265,15 +1291,28 @@ const Core = (() => {
   }
   // ---------- lock ----------
   const PINK = 'mutabeti_pin';
-  const hash0 = s => { let h = 2166136261 >>> 0; for (let i = 0; i < 4000; i++) for (let j = 0; j < s.length; j++) { h ^= s.charCodeAt(j) + i; h = Math.imul(h, 16777619) >>> 0; } return 'f' + h.toString(16); };
-  async function hashPin(pin, salt) { const s = salt + ':' + pin; try { if (window.crypto && crypto.subtle) { const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)); return 's' + [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, '0')).join(''); } } catch (e) { } return hash0(s); }
+  // Legacy verifier only: existing f-prefixed PINs are upgraded after a successful unlock.
+  const legacyHash0 = s => { let h = 2166136261 >>> 0; for (let i = 0; i < 4000; i++) for (let j = 0; j < s.length; j++) { h ^= s.charCodeAt(j) + i; h = Math.imul(h, 16777619) >>> 0; } return 'f' + h.toString(16); };
+  const hex = b => [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, '0')).join('');
+  async function hashPin(pin, salt) {
+    if (!window.crypto || !crypto.subtle || !window.TextEncoder) throw new Error('secure-crypto-unavailable');
+    const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(String(pin)), 'PBKDF2', false, ['deriveBits']);
+    const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', salt: new TextEncoder().encode(String(salt)), iterations: 310000, hash: 'SHA-256' }, key, 256);
+    return 'p' + hex(bits);
+  }
+  async function verifyPin(pin, rec) {
+    if (rec && typeof rec.h === 'string' && rec.h.startsWith('p')) return { ok: (await hashPin(pin, rec.salt)) === rec.h, legacy: false };
+    const legacy = rec && typeof rec.h === 'string' ? (rec.h.startsWith('s') ? 's' + hex(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(rec.salt + ':' + pin))) : legacyHash0(rec.salt + ':' + pin)) : '';
+    return { ok: legacy === rec.h, legacy: true };
+  }
+  async function migratePin(rec, pin) { const salt = hex(crypto.getRandomValues(new Uint8Array(16))); const h = await hashPin(pin, salt); localStorage.setItem(PINK, JSON.stringify({ salt, h })); }
   const pinRec = () => { try { return JSON.parse(localStorage.getItem(PINK) || 'null'); } catch (e) { return null; } };
   let lockedAt = 0, fails = 0; let blockUntil = (() => { try { return +localStorage.getItem(PINK + '_bu') || 0; } catch (e) { return 0; } })();
   function showLock() {
     if (document.getElementById('lock')) return; document.body.classList.add('locked');
     const d = document.createElement('div'); d.id = 'lock'; d.innerHTML = `<div class="lockbox"><div style="font-size:42px">🔒</div><h2>${X('التطبيق مقفول', 'App locked')}</h2><input id="lockin" type="password" inputmode="numeric" autocomplete="off" maxlength="12" placeholder="${X('اكتب الرقم السري', 'Enter your PIN')}"><div id="lockmsg" class="muted" style="min-height:20px"></div><button class="btn pri" id="lockgo">${X('فتح', 'Unlock')}</button><p><button class="btn sm" id="lockforgot">${X('نسيت الرقم؟', 'Forgot PIN?')}</button></p></div>`;
     document.body.appendChild(d); const inp = d.querySelector('#lockin'); setTimeout(() => inp.focus(), 50);
-    const go = async () => { const m = d.querySelector('#lockmsg'); if (Date.now() < blockUntil) { m.textContent = X('استنى شوية وحاول تاني', 'Wait a moment and retry'); return; } const r = pinRec(); if (!r) { d.remove(); document.body.classList.remove('locked'); return; } const h = await hashPin(inp.value, r.salt); if (h === r.h) { fails = 0; d.remove(); document.body.classList.remove('locked'); pinTouch(); } else { fails++; inp.value = ''; m.textContent = X('الرقم غلط', 'Wrong PIN'); if (fails >= 5) { blockUntil = Date.now() + 30000; try { localStorage.setItem(PINK + '_bu', String(blockUntil)); } catch (e) { } fails = 0; m.textContent = X('محاولات كتير، استنى ٣٠ ثانية', 'Too many tries, wait 30 seconds'); } } };
+    const go = async () => { const m = d.querySelector('#lockmsg'); if (Date.now() < blockUntil) { m.textContent = X('استنى شوية وحاول تاني', 'Wait a moment and retry'); return; } const r = pinRec(); if (!r) { d.remove(); document.body.classList.remove('locked'); return; } let verified = false; try { const v = await verifyPin(inp.value, r); verified = v.ok; if (verified && v.legacy) await migratePin(r, inp.value); } catch (err) { m.textContent = X('القفل الآمن غير متاح في هذا المتصفح. افتح التطبيق عبر HTTPS أو متصفح حديث.', 'Secure PIN support is unavailable. Open the app over HTTPS in a modern browser.'); return; } if (verified) { fails = 0; d.remove(); document.body.classList.remove('locked'); pinTouch(); pinScheduleLock(); } else { fails++; inp.value = ''; m.textContent = X('الرقم غلط', 'Wrong PIN'); if (fails >= 5) { blockUntil = Date.now() + 30000; try { localStorage.setItem(PINK + '_bu', String(blockUntil)); } catch (e) { } fails = 0; m.textContent = X('محاولات كتير، استنى ٣٠ ثانية', 'Too many tries, wait 30 seconds'); } } };
     d.querySelector('#lockgo').onclick = go; inp.onkeydown = e => { if (e.key === 'Enter') go(); };
     d.querySelector('#lockforgot').onclick = () => { if (window.confirm(X('لو نسيت الرقم الحل الوحيد إنك تمسح كل بيانات التطبيق من الجهاز ده (وتستورد نسخة احتياطية بعدها). تمسح؟', 'If you forgot the PIN the only way in is to erase all app data on this device (then import a backup). Erase?'))) { try { localStorage.removeItem(PINK); localStorage.removeItem(KEY); } catch (e) { } location.reload(); } };
   }
@@ -1287,18 +1326,19 @@ const Core = (() => {
   }
   async function pinSet() {
     const r = pinRec(), p1 = $('#pin1').value, p2 = $('#pin2').value;
-    if (r) { const h = await hashPin(($('#pin0') || {}).value || '', r.salt); if (h !== r.h) { toast(X('الرقم الحالي غلط', 'Current PIN is wrong')); return; } }
+    if (r) { let v; try { v = await verifyPin(($('#pin0') || {}).value || '', r); } catch (e) { toast(X('التشفير الآمن غير متاح في هذا المتصفح', 'Secure crypto is unavailable in this browser')); return; } if (!v.ok) { toast(X('الرقم الحالي غلط', 'Current PIN is wrong')); return; } }
     if (!/^\d{4,12}$/.test(p1)) { toast(X('الرقم لازم يكون ٤ لـ ١٢ رقم', 'PIN must be 4 to 12 digits')); return; } if (p1 !== p2) { toast(X('الرقمين مش متطابقين', 'PINs do not match')); return; }
-    const salt = Math.random().toString(36).slice(2); localStorage.setItem(PINK, JSON.stringify({ salt, h: await hashPin(p1, salt) })); toast(X('اتفعّل القفل', 'Lock is on')); pinTouch(); render();
+    let salt, h; try { salt = hex(crypto.getRandomValues(new Uint8Array(16))); h = await hashPin(p1, salt); } catch (e) { toast(X('القفل الآمن يحتاج متصفح حديث واتصال HTTPS', 'Secure PIN requires a modern browser and HTTPS')); return; } localStorage.setItem(PINK, JSON.stringify({ salt, h })); toast(X('اتفعّل القفل', 'Lock is on')); pinTouch(); render(); pinScheduleLock();
   }
-  async function pinOff() { const r = pinRec(); if (!r) return; const h = await hashPin(($('#pin0') || {}).value || '', r.salt); if (h !== r.h) { toast(X('اكتب الرقم الحالي صح', 'Enter the current PIN')); return; } localStorage.removeItem(PINK); toast(X('اتلغى القفل', 'Lock is off')); render(); }
+  async function pinOff() { const r = pinRec(); if (!r) return; let v; try { v = await verifyPin(($('#pin0') || {}).value || '', r); } catch (e) { toast(X('التشفير الآمن غير متاح في هذا المتصفح', 'Secure crypto is unavailable in this browser')); return; } if (!v.ok) { toast(X('اكتب الرقم الحالي صح', 'Enter the current PIN')); return; } localStorage.removeItem(PINK); toast(X('اتلغى القفل', 'Lock is off')); render(); }
   const PTS = PINK + '_ts', AWAY = 300000;
   const pinTouch = () => { if (document.getElementById('lock')) return; try { localStorage.setItem(PTS, String(Date.now())); } catch (e) { } };
   const pinAway = () => { try { const t = +localStorage.getItem(PTS) || 0; return !t || Date.now() - t >= AWAY; } catch (e) { return true; } };
-  document.addEventListener('visibilitychange', () => { if (document.hidden) { lockedAt = Date.now(); pinTouch(); } else if (pinRec() && pinAway()) showLock(); else pinTouch(); });
-  window.addEventListener('pagehide', pinTouch);
-  setInterval(() => { if (!document.hidden) pinTouch(); }, 20000);
-  ['pointerdown', 'keydown'].forEach(ev => document.addEventListener(ev, () => { if (pinRec()) pinTouch(); }, { passive: true }));
+  document.addEventListener('visibilitychange', () => { if (document.hidden) { lockedAt = Date.now(); pinTouch(); clearTimeout(pinIdleTimer); } else if (pinRec() && pinAway()) showLock(); else { pinTouch(); pinScheduleLock(); } });
+  window.addEventListener('pagehide', () => { pinTouch(); clearTimeout(pinIdleTimer); });
+  let pinIdleTimer = null;
+  function pinScheduleLock() { clearTimeout(pinIdleTimer); if (!pinRec() || document.hidden || document.getElementById('lock')) return; pinIdleTimer = setTimeout(() => { if (pinRec() && !document.hidden) showLock(); }, AWAY); }
+  ['pointerdown', 'keydown', 'touchstart'].forEach(ev => document.addEventListener(ev, () => { if (pinRec()) { pinTouch(); pinScheduleLock(); } }, { passive: true }));
   // ---------- install / offline ----------
   const SWSRC = `const C='mutabeti-v8';self.addEventListener('install',e=>{self.skipWaiting();});self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==C).map(k=>caches.delete(k)))).then(()=>self.clients.claim()));});self.addEventListener('fetch',e=>{if(e.request.method!=='GET')return;e.respondWith(fetch(e.request).then(r=>{if(r&&r.ok&&new URL(e.request.url).origin===location.origin){const c=r.clone();caches.open(C).then(x=>x.put(e.request,c));}return r;}).catch(()=>caches.match(e.request,{ignoreSearch:true}).then(m=>m||caches.match(self.registration.scope,{ignoreSearch:true}))));});`;
   const pw = { prompt: null, sw: 'none' };
@@ -1689,12 +1729,16 @@ const EN = {'د':'m','س':'h','ص':'p','و':'&',
     const f = e.target.files[0]; const id = location.hash.split('/')[2]; const it = find(id); if (!f || !it) return;
     const img = new Image(); const url = URL.createObjectURL(f);
     img.onload = () => {
-      const max = 640; const s = Math.min(1, max / Math.max(img.width, img.height));
-      const cv = document.createElement('canvas'); cv.width = Math.round(img.width * s); cv.height = Math.round(img.height * s);
-      cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
-      it.cover = cv.toDataURL('image/jpeg', 0.8); URL.revokeObjectURL(url); save(); render(); toast('تم تغيير الصورة');
+      try {
+        const max = 640; const s = Math.min(1, max / Math.max(img.width, img.height));
+        const cv = document.createElement('canvas'); cv.width = Math.round(img.width * s); cv.height = Math.round(img.height * s);
+        const ctx = cv.getContext('2d'); if (!ctx) throw new Error('canvas');
+        ctx.drawImage(img, 0, 0, cv.width, cv.height);
+        it.cover = cv.toDataURL('image/jpeg', 0.8); save(); render(); toast('تم تغيير الصورة');
+      } catch (err) { toast('تعذّر معالجة الصورة'); }
+      finally { URL.revokeObjectURL(url); }
     };
-    img.onerror = () => toast('الملف ده مش صورة صالحة');
+    img.onerror = () => { URL.revokeObjectURL(url); toast('الملف ده مش صورة صالحة'); };
     img.src = url;
   }
   function coverUrlForm(id) {
@@ -1842,7 +1886,7 @@ const EN = {'د':'m','س':'h','ص':'p','و':'&',
       case 'calnav': { const n = new Date(cal.y, cal.m + (+b.dataset.v), 1); cal.y = n.getFullYear(); cal.m = n.getMonth(); render(); break; }
       case 'calplan': addForm('plan', { date: cal.sel || C.ymd(d) }); break;
       case 'autocover': autoCover(it, b); break;
-      case 'rdel': { const rid = b.dataset.id; const it0 = state.items.find(x => x.id === rid); if (!it0) break; confirmDel(it0.title, () => { const ix = state.items.findIndex(x => x.id === rid); if (ix < 0) return; const snap = state.items[ix]; const logs = state.log.filter(l => l.id === rid); state.items.splice(ix, 1); state.log = state.log.filter(l => l.id !== rid); save(); render(); toastUndo('تم الحذف', () => { state.items.splice(Math.min(ix, state.items.length), 0, snap); state.log.push(...logs); save(); render(); }); }); break; }
+      case 'rdel': { const rid = b.dataset.id; const it0 = state.items.find(x => x.id === rid); if (!it0) break; confirmDel(it0.title, () => { const ix = state.items.findIndex(x => x.id === rid); if (ix < 0) return; const snap = state.items[ix]; const logs = state.log.filter(l => l.id === rid); state.items.splice(ix, 1); state.log = state.log.filter(l => l.id !== rid); addTombstone('item', rid); save(); render(); toastUndo('تم الحذف', () => { state.items.splice(Math.min(ix, state.items.length), 0, snap); state.log.push(...logs); state.settings._tombstones = tombstones().filter(x => !(x.kind === 'item' && x.id === rid)); save(); render(); }); }); break; }
       case 'redit': editSheet(b.dataset.id); break;
       case 'rsave': saveEdit(b.dataset.id); break;
       case 'lang': setLang(b.dataset.v); break;
@@ -1874,7 +1918,7 @@ const EN = {'د':'m','س':'h','ص':'p','و':'&',
       case 'coverurl': coverUrlForm(id); break;
       case 'coversave': { const v = $('#curl').value.trim(); if (!/^https?:\/\//i.test(v)) { toast('الرابط لازم يبدأ بـ http'); break; } it.cover = v; save(); closeSheet(); render(); break; }
       case 'coverrm': delete it.cover; save(); render(); break;
-      case 'del': { const it0 = state.items.find(x => x.id === id); if (!it0) break; confirmDel(it0.title, () => { const ix = state.items.findIndex(x => x.id === id); if (ix < 0) return; const snap = state.items[ix]; const logs = state.log.filter(l => l.id === id); state.items.splice(ix, 1); state.log = state.log.filter(l => l.id !== id); save(); go('#/'); toastUndo('تم الحذف', () => { state.items.splice(Math.min(ix, state.items.length), 0, snap); state.log.push(...logs); save(); go('#/item/' + id); }); }); break; }
+      case 'del': { const it0 = state.items.find(x => x.id === id); if (!it0) break; confirmDel(it0.title, () => { const ix = state.items.findIndex(x => x.id === id); if (ix < 0) return; const snap = state.items[ix]; const logs = state.log.filter(l => l.id === id); state.items.splice(ix, 1); state.log = state.log.filter(l => l.id !== id); addTombstone('item', id); save(); go('#/'); toastUndo('تم الحذف', () => { state.items.splice(Math.min(ix, state.items.length), 0, snap); state.log.push(...logs); state.settings._tombstones = tombstones().filter(x => !(x.kind === 'item' && x.id === id)); save(); go('#/item/' + id); }); }); break; }
       case 'catadd': catAdd(b.dataset.g); break;
       case 'catdel': { const g = b.dataset.g; const nm = catList(g)[+b.dataset.i]; confirmDel(nm || '', () => { const l = catList(g).slice(); l.splice(+b.dataset.i, 1); setCats(g, l); }); break; }
       case 'catreset': setCats(b.dataset.g, null); toast('رجعت القائمة الأصلية'); break;
@@ -1965,7 +2009,7 @@ const EN = {'د':'m','س':'h','ص':'p','و':'&',
   // ---------- cloud sync (Supabase) ----------
   const SBU = 'https://vflpbpjxxpyqobksabde.supabase.co', SBK = 'sb_publishable_SfXmk38uQDNN2m5FwP2dtg_uRIkcdL0';
   const SKEY = KEY + '_sb', MKEY = KEY + '_sbmeta';
-  let sbSess = null, sbMeta = { rev: 0, uid: null, dirty: false, last: 0 }, sbBusy = false, sbMsg = '', sbT = null, sbVer = 0, sbSent = '';
+  let sbSess = null, sbMeta = { rev: 0, uid: null, dirty: false, last: 0 }, sbBusy = false, sbRetryPending = false, sbMsg = '', sbT = null, sbVer = 0, sbSent = '';
   try { sbSess = JSON.parse(localStorage.getItem(SKEY) || 'null'); } catch (e) { }
   try { sbMeta = Object.assign(sbMeta, JSON.parse(localStorage.getItem(MKEY) || 'null') || {}); } catch (e) { }
   const sbSaveMeta = () => { try { localStorage.setItem(MKEY, JSON.stringify(sbMeta)); } catch (e) { } };
@@ -1990,17 +2034,45 @@ const EN = {'د':'m','س':'h','ص':'p','و':'&',
     }
     return sbSess.at;
   }
-  function sbMerge(a, b) { // a wins on same id; everything only in b is kept too
+  function tombstones() { state.settings = state.settings || {}; return Array.isArray(state.settings._tombstones) ? state.settings._tombstones : (state.settings._tombstones = []); }
+  function addTombstone(kind, id) { if (!id) return; const a = tombstones(); if (!a.some(x => x && x.kind === kind && x.id === id)) a.push({ kind, id, at: Date.now() }); }
+  function applyTombstones(data) {
+    const s = data.settings || {}, ts = Array.isArray(s._tombstones) ? s._tombstones : [];
+    const dead = new Set(ts.filter(x => x && typeof x.kind === 'string' && typeof x.id === 'string').map(x => x.kind + '|' + x.id));
+    data.items = (data.items || []).filter(x => !dead.has('item|' + x.id));
+    data.log = (data.log || []).filter(x => !dead.has('item|' + x.id));
+    if (data.exp) {
+      ['tx','inc','loans','lists','fixed','errands','errTpl'].forEach(k => { if (Array.isArray(data.exp[k])) data.exp[k] = data.exp[k].filter(x => !dead.has(k + '|' + x.id)); });
+      (data.exp.loans || []).forEach(x => { if (Array.isArray(x.pays)) x.pays = x.pays.filter(p => !dead.has('pays|' + p.id)); });
+      (data.exp.lists || []).forEach(x => { if (Array.isArray(x.items)) x.items = x.items.filter(i => !dead.has('listitems|' + i.id)); });
+    }
+    return data;
+  }
+  function sbMerge(a, b) {
+    const sa = a.settings || {}, sb = b.settings || {};
+    const ts = (Array.isArray(sa._tombstones) ? sa._tombstones : []).concat(Array.isArray(sb._tombstones) ? sb._tombstones : []);
+    const tm = new Map(); ts.filter(x => x && typeof x.kind === 'string' && typeof x.id === 'string').forEach(x => tm.set(x.kind + '|' + x.id, x));
+    const settings = Object.assign({}, sb, sa, { _tombstones: [...tm.values()] });
     const ids = new Set(a.items.map(i => i.id)); const items = a.items.concat(b.items.filter(i => !ids.has(i.id)));
     const lk = new Set(a.log.map(l => l.d + '|' + l.id)); const log = a.log.concat(b.log.filter(l => !lk.has(l.d + '|' + l.id)));
-    return C.validate(Object.assign({}, b, a, { items, log, settings: Object.assign({}, b.settings, a.settings) }));
+    const merged = C.validate(Object.assign({}, b, a, { items, log, settings, exp: mergeExpense(a.exp, b.exp, settings._tombstones) }));
+    return merged ? applyTombstones(merged) : null;
+  }
+  function mergeExpense(a, b, ts) {
+    if (!a && !b) return undefined;
+    const out = Object.assign({}, b || {}, a || {}), dead = new Set((ts || []).map(x => x.kind + '|' + x.id));
+    ['tx','inc','loans','lists','fixed','errands','errTpl'].forEach(k => {
+      const aa = a && Array.isArray(a[k]) ? a[k] : [], bb = b && Array.isArray(b[k]) ? b[k] : [], seen = new Set(aa.map(x => x.id));
+      out[k] = aa.concat(bb.filter(x => !seen.has(x.id))).filter(x => !dead.has(k + '|' + x.id));
+    });
+    return out;
   }
   function sbApplyLocal(v) {
-    state = v; try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) { }
+    state = applyTombstones(v); try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) { }
     const ae = document.activeElement;
     if (!$('#sheet') && !(ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName))) render();
   }
-  const sbEmpty = () => !state.items.length && !(state.log && state.log.length);
+  const sbEmpty = () => !state.items.length && !(state.log && state.log.length) && !(state.exp && ['inc','loans','tx','lists','fixed','errands','errTpl'].some(k => Array.isArray(state.exp[k]) && state.exp[k].length));
   function sbStat(t) { sbMsg = t; const el = $('#sbstat'); if (el) el.textContent = sbStatText(); }
   function sbStatText() {
     if (!sbSess) return '';
@@ -2018,7 +2090,14 @@ const EN = {'د':'m','س':'h','ص':'p','و':'&',
     clearTimeout(sbT); sbT = setTimeout(sbSync, 1500);
   }
   async function sbSync() {
-    if (!sbSess || sbBusy) return;
+    if (!sbSess) return;
+    if (sbBusy) { sbRetryPending = true; return; }
+    const accountChanged = sbMeta.uid !== sbSess.uid;
+    let switchChoice = 'merge';
+    if (accountChanged && !sbEmpty()) {
+      const choice = window.prompt(X('الحساب الحالي مختلف عن آخر حساب تمت مزامنته. اختر: 1 = استخدام بيانات الحساب السحابي واستبدال بيانات هذا الجهاز، 2 = دمج بيانات هذا الجهاز مع الحساب الجديد، 3 = إلغاء المزامنة. لا يتم أي تغيير قبل اختيارك.', 'This is a different cloud account. Choose: 1 = use cloud data and replace this device, 2 = merge this device data into the new account, 3 = cancel sync. Nothing changes until you choose.'), '3');
+      if (choice === '1') switchChoice = 'cloud'; else if (choice === '2') switchChoice = 'merge'; else { sbStat(''); return; }
+    }
     if (navigator.onLine === false) { sbStat('off'); return; }
     sbBusy = true; sbStat('busy');
     try {
@@ -2030,6 +2109,7 @@ const EN = {'د':'m','س':'h','ص':'p','و':'&',
         const row = g.json && g.json[0];
         const same = sbMeta.uid === sbSess.uid;
         if (!row) {
+          if (!same && switchChoice === 'cloud' && !sbEmpty()) { if (!window.confirm(X('الحساب السحابي الجديد لا يحتوي على بيانات. هل تريد بدءه فارغًا ومسح بيانات هذا الجهاز؟', 'The new cloud account is empty. Start it empty and replace this device data?'))) { sbStat(''); return; } state = { v: 2, items: [], log: [], settings: { name: '', views: {}, _tombstones: [] } }; sbApplyLocal(state); }
           if (sbEmpty() && !same) { sbMeta = { rev: 0, uid: sbSess.uid, dirty: false, last: Date.now() }; sbSaveMeta(); sbSent = sbJson(); break; }
           try { localStorage.setItem(KEY + '_presync', JSON.stringify(state)); } catch (e) { }
           const ver = sbVer;
@@ -2041,6 +2121,7 @@ const EN = {'د':'m','س':'h','ص':'p','و':'&',
         }
         const remote = C.validate(row.data); if (!remote) throw new Error('srv');
         if (!same) {
+          if (switchChoice === 'cloud') { sbApplyLocal(remote); sbMeta = { rev: row.rev, uid: sbSess.uid, dirty: false, last: Date.now() }; sbSent = sbJson(); sbSaveMeta(); break; }
           if (sbEmpty()) { sbApplyLocal(remote); sbMeta = { rev: row.rev, uid: sbSess.uid, dirty: false, last: Date.now() }; sbSent = sbJson(); sbSaveMeta(); break; }
           try { localStorage.setItem(KEY + '_presync', JSON.stringify(state)); } catch (e) { }
           const m = sbMerge(remote, state); if (!m) throw new Error('srv');
@@ -2060,7 +2141,7 @@ const EN = {'د':'m','س':'h','ص':'p','و':'&',
       }
       sbStat('');
     } catch (e) { sbStat(navigator.onLine === false || (e && e.message === 'net') || (e && e.name === 'TypeError') ? 'off' : 'err'); }
-    finally { sbBusy = false; }
+    finally { sbBusy = false; const retry = sbRetryPending; sbRetryPending = false; if (retry && sbSess && sbMeta.dirty && navigator.onLine !== false) { clearTimeout(sbT); sbT = setTimeout(sbSync, 350); } }
   }
   async function sbLogin() {
     const em = ($('#sbem') || {}).value, pw = ($('#sbpw') || {}).value; const m = $('#sbmsg');
@@ -2123,7 +2204,7 @@ const EN = {'د':'m','س':'h','ص':'p','و':'&',
   if (sbSess) { sbSent = sbMeta.dirty ? '' : sbJson(); setTimeout(sbSync, 400); }
   window.__app = { get state() { return state; }, Core: C, render, go };
   render();
-  if (pinRec() && pinAway()) showLock(); else pinTouch();
+  if (pinRec() && pinAway()) showLock(); else { pinTouch(); pinScheduleLock(); }
   showAuth();
 })();
 /*ENDAPP*/
