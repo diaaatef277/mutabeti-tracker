@@ -288,12 +288,33 @@ input:focus,select:focus,textarea:focus{outline:3px solid color-mix(in srgb,var(
 button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid var(--ac);outline-offset:2px}
 .toast[role="status"]{max-width:min(92vw,560px)}
 @media(prefers-reduced-motion:reduce){html:focus-within{scroll-behavior:auto}}
+
+/* Stage 4: weekly timeline and focus analytics */
+.week-nav{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:10px 0}
+.week-nav .range{font-weight:700;flex:1;text-align:center;min-width:160px}
+.week-timeline{display:grid;grid-template-columns:repeat(7,minmax(160px,1fr));gap:8px;overflow-x:auto;padding-bottom:8px;direction:rtl}
+.wt-day{background:var(--bg2);border:1px solid var(--bd);border-radius:10px;min-width:160px;padding:8px}
+.wt-day.today{border-color:var(--ac)}
+.wt-head{display:flex;justify-content:space-between;align-items:center;gap:6px;padding-bottom:7px;border-bottom:1px solid var(--bd);font-weight:700}
+.wt-events{display:flex;flex-direction:column;gap:7px;padding-top:8px;min-height:56px}
+.wt-event{display:flex;gap:7px;align-items:flex-start;background:var(--bg);border:1px solid var(--bd);border-inline-start:3px solid var(--ac);border-radius:8px;padding:7px;font-size:12px;min-width:0}
+.wt-time{font-weight:700;white-space:nowrap;color:var(--ac);font-variant-numeric:tabular-nums}
+.wt-event .t{min-width:0;overflow-wrap:anywhere}
+.analytics-table{width:100%;border-collapse:collapse;font-size:13px}
+.analytics-table th,.analytics-table td{padding:9px 7px;border-bottom:1px solid var(--bd);text-align:start;vertical-align:middle}
+.analytics-table th{color:var(--tx2);font-weight:600}
+.analytics-table .num{text-align:end;white-space:nowrap;font-variant-numeric:tabular-nums}
+.analytics-bar{height:7px;background:var(--bg3);border-radius:9px;overflow:hidden;min-width:70px}
+.analytics-bar i{display:block;height:100%;background:var(--ac);border-radius:9px}
+.import-preview-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin:10px 0}
+.import-preview-grid .box{padding:10px}
+@media(max-width:680px){.week-timeline{grid-template-columns:repeat(7,minmax(175px,1fr))}.analytics-table{font-size:12px}.analytics-table th,.analytics-table td{padding:7px 5px}}
 </style></head><body>
 <div class="app">
 <aside class="side"><div class="brand">📓 سبيلي</div><nav class="nav" id="nav"><a data-nav href="#/">🏠 الرئيسية</a><a data-nav href="#/tasks">✅ المهام</a><a data-nav href="#/habits">🔁 العادات</a><a data-nav href="#/books">📚 الكتب</a><a data-nav href="#/movies">🎬 الأفلام</a><a data-nav href="#/learning">🎓 التعلّم</a><a data-nav href="#/plans">📅 الخطط</a><a data-nav href="#/week">📊 الأسبوع</a><a data-nav href="#/inbox">📥 صندوق الوارد</a><a data-nav href="#/review">📝 المراجعة الأسبوعية</a><a data-nav href="#/goals">🎯 أهداف السنة</a><a data-nav href="#/money">💰 المصاريف</a><a data-nav href="#/calendar">📆 التقويم</a><a data-nav href="#/report">📈 التقرير الشهري</a><a data-nav href="#/yearplan">🗓 الخطة السنوية</a><a data-nav href="#/settings">⚙️ الإعدادات</a><a data-nav href="#/more">☰ المزيد</a></nav></aside>
 <div class="scrim" id="scrim"></div>
 <div class="main">
-<div class="top"><button class="ib" id="menubtn" aria-label="القائمة">☰</button><b id="top-title">سبيلي</b><button class="ib" id="topadd" aria-label="إضافة">＋</button></div>
+<div class="top"><button class="ib" id="menubtn" aria-label="القائمة">☰</button><b id="top-title">سبيلي</b><button class="ib" id="cmdbtn" aria-label="فتح لوحة الأوامر" title="بحث سريع · Ctrl+K">⌘</button><button class="ib" id="topadd" aria-label="إضافة">＋</button></div>
 <div class="wrap" id="view"></div></div></div>
 <nav class="tabs"><a data-nav href="#/"><span>🏠</span>الرئيسية</a><a data-nav href="#/tasks"><span>✅</span>المهام</a><a data-nav href="#/habits"><span>🔁</span>العادات</a><a data-nav href="#/books"><span>📚</span>الكتب</a><a data-nav href="#/money"><span>💰</span>المصاريف</a><a data-nav href="#/more"><span>☰</span>المزيد</a></nav>
 <script>/*CORE*/
@@ -403,6 +424,14 @@ const Core = (() => {
     }
     if (i.notes != null && typeof i.notes !== 'string') i.notes = String(i.notes);
     if (i.quotes != null) i.quotes = Array.isArray(i.quotes) ? i.quotes.filter(x => x && typeof x === 'object').map(x => ({ t: String(x.t == null ? '' : x.t) })) : [];
+    // Stage 3 additions are optional: older records remain untouched when fields are absent.
+    if (i.type === 'task' && Array.isArray(i.subtasks)) i.subtasks = i.subtasks.filter(x => x && typeof x === 'object' && validId(x.id) && typeof x.t === 'string' && x.t.trim() && x.t.length <= 5000).map(x => ({ id: x.id, t: x.t, done: !!x.done, updated: Number.isFinite(Number(x.updated)) ? Number(x.updated) : 0 }));
+    else if (i.type === 'task' && i.subtasks != null) delete i.subtasks;
+    if (['book','playlist','cert'].includes(i.type) && Array.isArray(i.linkedNotes)) i.linkedNotes = i.linkedNotes.filter(x => x && typeof x === 'object' && validId(x.id) && typeof x.text === 'string' && x.text.trim() && x.text.length <= 10000).map(x => ({ id: x.id, text: x.text, created: validDate(x.created) ? x.created : '', updated: Number.isFinite(Number(x.updated)) ? Number(x.updated) : 0 }));
+    else if (i.linkedNotes != null && !['book','playlist','cert'].includes(i.type)) delete i.linkedNotes;
+    if (i.startTime != null && !/^([01]\d|2[0-3]):[0-5]\d$/.test(String(i.startTime))) delete i.startTime;
+    if (i.durationMin != null) { if (!Number.isFinite(Number(i.durationMin)) || Number(i.durationMin) < 1 || Number(i.durationMin) > 1440) delete i.durationMin; else i.durationMin = Number(i.durationMin); }
+    if (i.weeklyEstimateMin != null) { if (!Number.isFinite(Number(i.weeklyEstimateMin)) || Number(i.weeklyEstimateMin) < 1 || Number(i.weeklyEstimateMin) > 1000000) delete i.weeklyEstimateMin; else i.weeklyEstimateMin = Number(i.weeklyEstimateMin); }
     return i;
   };
   const validId = v => typeof v === 'string' && /^[A-Za-z0-9_-]{1,80}$/.test(v);
@@ -423,7 +452,7 @@ const Core = (() => {
       return true;
     }).map(fixItem);
     const settings = Object.assign({ name: '', views: {} }, data.settings && typeof data.settings === 'object' && !Array.isArray(data.settings) ? data.settings : {});
-    const log = Array.isArray(data.log) ? data.log.filter(l => l && typeof l === 'object' && validId(l.id) && validDate(l.d) && (l.k == null || typeof l.k === 'string')) : [];
+    const log = Array.isArray(data.log) ? data.log.filter(l => l && typeof l === 'object' && validId(l.id) && validDate(l.d) && (l.k == null || typeof l.k === 'string') && (l.sid == null || validId(l.sid)) && (l.m == null || (Number.isFinite(Number(l.m)) && Number(l.m) >= 0 && Number(l.m) <= 1440)) && (l.kind == null || l.kind === 'focus' || l.kind === 'break')) : [];
     if (Array.isArray(settings._tombstones)) settings._tombstones = settings._tombstones.filter(x => x && typeof x.kind === 'string' && x.kind.length <= 32 && validId(x.id) && (x.at == null || Number.isFinite(Number(x.at))));
     let exp = data.exp && typeof data.exp === 'object' && !Array.isArray(data.exp) ? data.exp : undefined;
     if (exp) {
@@ -479,17 +508,17 @@ const Core = (() => {
   const CF = [['instr', 'المحاضر', 'text'], ['sdate', 'تاريخ البدء', 'date'], ['edate', 'تاريخ الانتهاء', 'date'], ['py', 'ضمن خطة سنة', 'select', YEARS]];
   const T = {
     task: { label: 'مهمة', icon: '✅', plural: 'المهام', fields: [
-      ['freq', 'التكرار', 'select', FREQ], ['cat', 'التصنيف', 'cat'], ['due', 'الموعد', 'date'], ['prio', 'الأهمية', 'select', PRIO], ['wd', 'في يوم', 'select', WD]] },
+      ['freq', 'التكرار', 'select', FREQ], ['cat', 'التصنيف', 'cat'], ['due', 'الموعد', 'date'], ['prio', 'الأهمية', 'select', PRIO], ['wd', 'في يوم', 'select', WD], ['startTime', 'وقت البداية (اختياري)', 'time'], ['durationMin', 'المدة بالدقائق (اختياري)', 'num']] },
     habit: { label: 'عادة', icon: '🔁', plural: 'العادات', fields: [
       ['freq', 'التكرار', 'select', HFREQ], ['cat', 'التصنيف', 'cat']] },
     book: { label: 'كتاب', icon: '📚', plural: 'الكتب', fields: [
-      ['author', 'المؤلف', 'text'], ['status', 'الحالة', 'select', STAT.book], ['pages', 'عدد الصفحات', 'num'], ['read', 'قرأت (صفحة)', 'num'], ['pace', 'صفحات/يوم', 'num'], ['rating', 'التقييم', 'select', RATING], ['genre', 'النوع', 'select', BOOK_GENRES], ['isbn', 'ISBN (لغلاف تلقائي)', 'text'], ['py', 'ضمن خطة سنة', 'select', YEARS]] },
+      ['author', 'المؤلف', 'text'], ['status', 'الحالة', 'select', STAT.book], ['pages', 'عدد الصفحات', 'num'], ['read', 'قرأت (صفحة)', 'num'], ['pace', 'صفحات/يوم', 'num'], ['rating', 'التقييم', 'select', RATING], ['genre', 'النوع', 'select', BOOK_GENRES], ['isbn', 'ISBN (لغلاف تلقائي)', 'text'], ['py', 'ضمن خطة سنة', 'select', YEARS], ['weeklyEstimateMin', 'وقت متوقع أسبوعيًا بالدقائق (اختياري)', 'num']] },
     movie: { label: 'فيلم', icon: '🎬', plural: 'الأفلام', fields: [
       ['year', 'السنة', 'text'], ['status', 'الحالة', 'select', STAT.movie], ['who', 'مع مين', 'select', [['', '—'], ['alone', 'لوحدي'], ['family', 'مع الأسرة'], ['friends', 'مع أصحاب']]], ['rating', 'التقييم', 'select', RATING], ['genre', 'النوع', 'select', MOVIE_GENRES], ['date', 'تاريخ المشاهدة', 'date']] },
     playlist: { label: 'بلاي ليست', icon: '▶️', plural: 'بلاي ليست', fields: [
-      ['channel', 'القناة', 'text'], ['genre', 'التصنيف', 'select', COURSE_CATS], ['platform', 'المنصة', 'select', PLATFORMS], ['cs', 'حالة الكورس', 'select', STAT.playlist], ['total', 'عدد الفيديوهات', 'num'], ['watched', 'اتفرجت على', 'num'], ['pace', 'فيديو/يوم', 'num'], ['url', 'الرابط', 'url'], ...CF] },
+      ['channel', 'القناة', 'text'], ['genre', 'التصنيف', 'select', COURSE_CATS], ['platform', 'المنصة', 'select', PLATFORMS], ['cs', 'حالة الكورس', 'select', STAT.playlist], ['total', 'عدد الفيديوهات', 'num'], ['watched', 'اتفرجت على', 'num'], ['pace', 'فيديو/يوم', 'num'], ['url', 'الرابط', 'url'], ...CF, ['weeklyEstimateMin', 'وقت متوقع أسبوعيًا بالدقائق (اختياري)', 'num']] },
     cert: { label: 'شهادة', icon: '🎓', plural: 'الشهادات', fields: [
-      ['code', 'الكود (مثلاً AZ-104)', 'text'], ['provider', 'الجهة', 'text'], ['genre', 'التصنيف', 'select', COURSE_CATS], ['platform', 'المنصة', 'select', PLATFORMS], ['status', 'حالة الكورس', 'select', STAT.cert], ['date', 'تاريخ الامتحان', 'date'], ['price', 'سعر الامتحان', 'num'], ['center', 'مركز / مكان الامتحان', 'text'], ['expiry', 'تاريخ انتهاء الشهادة (تجديد)', 'date'], ...CF] },
+      ['code', 'الكود (مثلاً AZ-104)', 'text'], ['provider', 'الجهة', 'text'], ['genre', 'التصنيف', 'select', COURSE_CATS], ['platform', 'المنصة', 'select', PLATFORMS], ['status', 'حالة الكورس', 'select', STAT.cert], ['date', 'تاريخ الامتحان', 'date'], ['price', 'سعر الامتحان', 'num'], ['center', 'مركز / مكان الامتحان', 'text'], ['expiry', 'تاريخ انتهاء الشهادة (تجديد)', 'date'], ...CF, ['weeklyEstimateMin', 'وقت متوقع أسبوعيًا بالدقائق (اختياري)', 'num']] },
     plan: { label: 'خطة / حدث', icon: '📅', plural: 'الخطط', fields: [
       ['kind', 'النوع', 'select', [['event', 'حدث في المجال'], ['outing', 'خروجة'], ['trip', 'سفر / إجازة'], ['movie', 'فيلم مع الأسرة'], ['other', 'تاني']]], ['date', 'التاريخ', 'date'], ['status', 'الحالة', 'select', STAT.plan], ['place', 'المكان', 'text'], ['link', 'رابط', 'url']] }
   };
@@ -587,10 +616,11 @@ const Core = (() => {
   }
   const subPct = t => { const l = t.todos || []; return l.length ? Math.round(l.filter(x => x.d).length / l.length * 100) : null; };
   const subChip = t => { const p = subPct(t); if (p == null) return ''; const l = t.todos; return `<span class="sp" title="${p}%"><span class="chip ${p >= 100 ? 'ok' : 'ac'}">${l.filter(x => x.d).length}/${l.length} · ${p}%</span><span class="bar ${p >= 100 ? 'ok' : ''}"><i style="width:${p}%"></i></span></span>`; };
+  const subtaskChip = t => { const a = Array.isArray(t.subtasks) ? t.subtasks : []; if (!a.length) return ''; const n = a.filter(x => x.done).length, p = Math.round(n / a.length * 100); return `<span class="chip ${p === 100 ? 'ok' : 'ac'}" title="المهام الفرعية المستقلة">🧩 ${n}/${a.length}</span>`; };
   const rowActs = id => `<span class="ra"><button class="ib2" data-act="redit" data-id="${id}" aria-label="تعديل">✏️</button><button class="ib2" data-act="rdel" data-id="${id}" aria-label="حذف">🗑</button></span>`;
   const taskRow = (t, d) => {
     const done = C.isDone(t, d), st = C.streak(t, d);
-    return `<div class="row ${done ? 'done' : ''}"><button class="ck ${done ? 'on' : ''}" data-act="tick" data-id="${t.id}" aria-label="تم">${done ? '✓' : ''}</button><div class="t"><a href="#/item/${t.id}"><i class="pd p-${prioOf(t)}" title="${prioOf(t)}"></i>${esc(t.title)}</a><span class="muted">${esc((FREQ.find(f => f[0] === t.freq) || FREQ[0])[1])}${t.cat ? ' · ' + esc(t.cat) : ''}${t.freq === 'once' && t.due ? ' · ' + dfmt(t.due) : ''}</span></div>${subChip(t)}${st ? `<span class="chip warn">🔥 ${st}</span>` : ''}${rowActs(t.id)}</div>`;
+    return `<div class="row ${done ? 'done' : ''}"><button class="ck ${done ? 'on' : ''}" data-act="tick" data-id="${t.id}" aria-label="تم">${done ? '✓' : ''}</button><div class="t"><a href="#/item/${t.id}"><i class="pd p-${prioOf(t)}" title="${prioOf(t)}"></i>${esc(t.title)}</a><span class="muted">${esc((FREQ.find(f => f[0] === t.freq) || FREQ[0])[1])}${t.cat ? ' · ' + esc(t.cat) : ''}${t.freq === 'once' && t.due ? ' · ' + dfmt(t.due) : ''}</span></div>${subChip(t)}${subtaskChip(t)}${st ? `<span class="chip warn">🔥 ${st}</span>` : ''}${rowActs(t.id)}</div>`;
   };
 
   // ---------- views ----------
@@ -623,7 +653,7 @@ const Core = (() => {
      <div class="box stat"><div class="emo">🎓</div><div><div class="n" id="st-exam">${near ? C.daysLeft(near.date, d) : '—'}</div><div class="muted">${near ? 'يوم على ' + esc(near.code || near.title) : 'مفيش امتحان قريب'}</div></div></div>
     </div>` : ''}
     ${over.length ? `<h2>⚠️ مهام متأخرة</h2><div class="box warn-b list">${over.map(t => taskRow(t, d)).join('')}</div>` : ''}
-    ${isDay ? `<h2>✅ مهام النهارده <small><a href="#/tasks">الكل</a> · <a href="#/calendar">التقويم</a></small></h2>
+    ${isDay ? `<h2>✅ مهام النهارده <small><a href="#/tasks">الكل</a> · <a href="#/calendar">التقويم</a> · <a href="#/day">🕒 جدول اليوم</a></small></h2>
     <div class="box list">${today.length ? today.slice().sort((a, b) => C.isDone(a, d) - C.isDone(b, d)).slice(0, 10).map(t => taskRow(t, d)).join('') : '<div class="empty"><b>🌿</b>مفيش مهام النهارده. أضف مهمة بزر +</div>'}</div>` : `<p class="muted"><a href="#/tasks" style="color:var(--ac)">✅ كل المهام</a></p>`}
     ${dhabs.length ? `<h2>🔁 العادات <small><a href="#/habits">الكل</a></small></h2><div class="box list">${dhabs.map(h => habitRow(h, d)).join('')}</div>` : ''}
     ${goalsBox()}
@@ -704,28 +734,84 @@ const Core = (() => {
     ${groups || '<div class="empty"><b>🔁</b>مفيش عادات لسه. اكتب عادة فوق أو اضغط +</div>'}`;
   }
 
+  let weekOffset = 0;
+  const weekDaysAr = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+  const weekDayLabel = ds => isEn() ? C.parse(ds).toLocaleDateString('en-US', { weekday: 'short' }) : weekDaysAr[C.parse(ds).getDay()];
+  function taskOnDate(t, ds) {
+    const d = C.parse(ds), today = C.ymd(now());
+    if (t.created && t.created > ds) return false;
+    if (t.freq === 'once') return t.due === ds || t.doneDate === ds || (!t.due && ds === today);
+    if (t.freq === 'daily') return true;
+    if (t.freq === 'weekly') return t.wd !== undefined && t.wd !== null && t.wd !== '' && d.getDay() === Number(t.wd);
+    return false;
+  }
+  function weekFocusRows(days) {
+    const daySet = new Set(days.map(x => x.d));
+    const logs = state.log.filter(l => l && l.k === 'p' && l.kind !== 'break' && daySet.has(l.d) && Number.isFinite(Number(l.m)) && Number(l.m) > 0);
+    const mins = new Map();
+    logs.forEach(l => mins.set(l.id, (mins.get(l.id) || 0) + Number(l.m)));
+    const items = new Map(state.items.map(i => [i.id, i]));
+    const taskRows = [];
+    state.items.filter(i => i.type === 'task').forEach(it => {
+      let occurrences = 0;
+      const activeDays = days.filter(x => !it.created || it.created <= x.d);
+      if (it.freq === 'daily') occurrences = activeDays.length;
+      else if (it.freq === 'weekly') occurrences = it.wd !== undefined && it.wd !== null && it.wd !== '' ? (activeDays.some(x => C.parse(x.d).getDay() === Number(it.wd)) ? 1 : 0) : (activeDays.length ? 1 : 0);
+      else if (it.freq === 'once') occurrences = days.some(x => it.due === x.d || it.doneDate === x.d) ? 1 : 0;
+      else occurrences = state.log.some(l => l.id === it.id && days.some(x => x.d === l.d) && l.k !== 'p' && l.k !== 'b') ? 1 : 0;
+      const estimate = Number(it.durationMin || 0) * occurrences;
+      const actual = mins.get(it.id) || 0;
+      if (estimate || actual) taskRows.push({ id: it.id, title: it.title, subject: it.cat || X('بدون تصنيف','Uncategorized'), estimate, actual });
+    });
+    logs.forEach(l => { if (!items.has(l.id)) mins.delete(l.id); });
+    const subjects = new Map();
+    state.items.forEach(it => {
+      const actual = mins.get(it.id) || 0;
+      const estimate = it.type === 'task' ? 0 : (['book','playlist','cert'].includes(it.type) && (!it.created || it.created <= days[6].d) ? Number(it.weeklyEstimateMin || 0) : 0);
+      const subject = it.cat || it.genre || (it.type === 'book' ? X('قراءة','Reading') : it.type === 'playlist' || it.type === 'cert' ? X('تعلّم','Learning') : X('بدون تصنيف','Uncategorized'));
+      if (!actual && !estimate) return;
+      const x = subjects.get(subject) || { subject, estimate: 0, actual: 0 };
+      x.estimate += estimate; x.actual += actual; subjects.set(subject, x);
+    });
+    taskRows.forEach(r => { const x = subjects.get(r.subject) || { subject: r.subject, estimate: 0, actual: 0 }; x.estimate += r.estimate; subjects.set(r.subject, x); });
+    return { taskRows: taskRows.sort((a,b) => b.actual - a.actual || b.estimate - a.estimate), subjectRows: [...subjects.values()].sort((a,b) => b.actual - a.actual || b.estimate - a.estimate), totalActual: logs.reduce((n,l) => n + Number(l.m),0), totalEstimate: taskRows.reduce((n,r)=>n+r.estimate,0) + state.items.filter(i => ['book','playlist','cert'].includes(i.type) && (!i.created || i.created <= days[6].d)).reduce((n,i)=>n+Number(i.weeklyEstimateMin||0),0) };
+  }
   function week() {
-    const d = now(); const ws = C.weekStart(d);
-    const dnames = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
-    const days = []; for (let i = 0; i < 7; i++) { const dd = C.addDays(ws, i); days.push({ d: C.ymd(dd), n: state.log.filter(l => l.d === C.ymd(dd) && l.k !== 'p' && l.k !== 'b').length, future: C.daysBetween(noon2(d), dd) > 0 }); }
+    const d = C.addDays(now(), weekOffset * 7), ws = C.weekStart(d);
+    const days = []; for (let i = 0; i < 7; i++) { const dd = C.addDays(ws, i); days.push({ d: C.ymd(dd), n: state.log.filter(l => l.d === C.ymd(dd) && l.k !== 'p' && l.k !== 'b').length, future: C.daysBetween(noon2(now()), dd) > 0 }); }
     const total = days.reduce((a, x) => a + x.n, 0);
-    const focus = state.log.filter(l => l.k === 'p' && days.some(x => x.d === l.d)).reduce((s2, l) => s2 + (l.m || 25), 0);
+    const focus = state.log.filter(l => l.k === 'p' && l.kind !== 'break' && days.some(x => x.d === l.d)).reduce((s2, l) => s2 + (Number(l.m) || 25), 0);
     const best = days.reduce((m, x) => x.n > m.n ? x : m, days[0]);
-    const bestName = best.n ? dnames[C.parse(best.d).getDay()] : '—';
+    const bestName = best.n ? weekDayLabel(best.d) : '—';
     const maxv = Math.max(1, ...days.map(x => x.n));
     const dhs = ofType('habit').filter(h => h.freq === 'daily');
     const hdone = dhs.filter(h => state.log.some(l => l.id === h.id && days.some(x => x.d === l.d))).length;
     const streaks = state.items.filter(i => (i.type === 'task' || i.type === 'habit') && i.freq !== 'once').map(i => [C.streak(i, d), i]).filter(x => x[0] > 0).sort((a, b) => b[0] - a[0]).slice(0, 5);
-    return `<div class="hrow"><h1>📊 مراجعة الأسبوع</h1></div>
-    <div class="muted">الأسبوع بيبدأ السبت ${dfmt(C.ymd(ws))}</div>
+    const range = dfmt(days[0].d, {day:'numeric',month:'short'}) + ' – ' + dfmt(days[6].d, {day:'numeric',month:'short',year:'numeric'});
+    const timeline = days.map(day => {
+      const its = state.items.filter(t => t.type === 'task' && t.startTime && taskOnDate(t, day.d)).sort((a,b) => a.startTime.localeCompare(b.startTime));
+      return `<section class="wt-day ${day.d === C.ymd(now()) ? 'today' : ''}"><div class="wt-head"><span>${weekDayLabel(day.d)} · ${day.d.slice(8)}</span><a href="#/day" data-weekday="${day.d}" class="muted">${X('اليوم','Day')} ↗</a></div><div class="wt-events">${its.length ? its.map(t => `<div class="wt-event"><span class="wt-time">${esc(t.startTime)}</span><div class="t"><a href="#/item/${t.id}"><b>${esc(t.title)}</b></a><div class="muted">${t.durationMin ? esc(String(t.durationMin)) + ' ' + X('دقيقة','min') : X('مدة غير محددة','Duration not set')}${t.cat ? ' · ' + esc(t.cat) : ''}</div></div></div>`).join('') : `<div class="muted">${X('لا توجد مهام مجدولة','No scheduled tasks')}</div>`}</div></section>`;
+    }).join('');
+    const flexibleWeekly = state.items.filter(t => t.type === 'task' && t.freq === 'weekly' && (t.wd === undefined || t.wd === null || t.wd === '') && t.startTime).sort((a,b) => a.startTime.localeCompare(b.startTime));
+    const flexibleHtml = flexibleWeekly.length ? `<div class="box list" style="margin-top:8px"><b>${X('مهام أسبوعية بدون يوم محدد','Weekly tasks without a set day')}</b>${flexibleWeekly.map(t=>`<div class="row"><span class="wt-time">${esc(t.startTime)}</span><div class="t"><a href="#/item/${t.id}">${esc(t.title)}</a><span class="muted">${t.durationMin ? esc(String(t.durationMin))+' '+X('دقيقة','min') : ''}</span></div></div>`).join('')}</div>` : '';
+    const analytics = weekFocusRows(days);
+    const fmtMin = n => Math.floor(n / 60) + ':' + String(Math.round(n % 60)).padStart(2,'0');
+    const taskTable = analytics.taskRows.length ? `<div style="overflow-x:auto"><table class="analytics-table"><thead><tr><th>${X('المهمة','Task')}</th><th class="num">${X('متوقع','Estimated')}</th><th class="num">${X('فعلي','Actual')}</th><th>${X('الفرق','Difference')}</th></tr></thead><tbody>${analytics.taskRows.map(r => `<tr><td><a href="#/item/${r.id}">${esc(r.title)}</a><div class="muted">${esc(r.subject)}</div></td><td class="num">${r.estimate ? fmtMin(r.estimate) : '—'}</td><td class="num">${fmtMin(r.actual)}</td><td>${r.estimate ? (r.actual-r.estimate < 0 ? '-' : r.actual-r.estimate > 0 ? '+' : '') + fmtMin(Math.abs(r.actual-r.estimate)) : '—'}</td></tr>`).join('')}</tbody></table></div>` : `<div class="empty">${X('سجّل جلسات بومودورو أو حدّد مدة متوقعة للمهام لعرض المقارنة.','Log Pomodoro sessions or set task estimates to see comparisons.')}</div>`;
+    const subjectTable = analytics.subjectRows.length ? `<div style="overflow-x:auto"><table class="analytics-table"><thead><tr><th>${X('الموضوع / التصنيف','Subject / category')}</th><th class="num">${X('متوقع أسبوعيًا','Weekly estimate')}</th><th class="num">${X('فعلي','Actual')}</th><th>${X('مقارنة','Comparison')}</th></tr></thead><tbody>${analytics.subjectRows.map(r => `<tr><td>${esc(r.subject)}</td><td class="num">${r.estimate ? fmtMin(r.estimate) : '—'}</td><td class="num">${fmtMin(r.actual)}</td><td><div class="analytics-bar"><i style="width:${r.estimate ? Math.min(100, r.actual/r.estimate*100) : (r.actual ? 100 : 0)}%"></i></div></td></tr>`).join('')}</tbody></table></div>` : `<div class="empty">${X('لا توجد بيانات وقت كافية لهذا الأسبوع.','Not enough time data for this week yet.')}</div>`;
+    return `<div class="hrow"><h1>📊 ${X('مراجعة الأسبوع','Weekly review')}</h1></div>
+    <div class="week-nav"><button class="btn" data-act="weekShift" data-v="-1" aria-label="${X('الأسبوع السابق','Previous week')}">›</button><button class="btn" data-act="weekNow">${X('الأسبوع الحالي','This week')}</button><span class="range">${range}</span><button class="btn" data-act="weekShift" data-v="1" aria-label="${X('الأسبوع التالي','Next week')}">‹</button></div>
+    <div class="muted">${X('الأسبوع بيبدأ السبت','Week starts Saturday')} ${dfmt(C.ymd(ws))}</div>
     <div class="grid g4" style="margin-top:10px">
-     <div class="box stat"><div class="emo">✅</div><div><div class="n">${total}</div><div class="muted">إنجاز الأسبوع ده</div></div></div>
-     <div class="box stat"><div class="emo">🏆</div><div><div class="n" style="font-size:18px">${bestName}</div><div class="muted">أكتر يوم نشاط (${best.n})</div></div></div>
-     <div class="box stat"><div class="emo">⏱</div><div><div class="n">${Math.floor(focus / 60)}:${String(focus % 60).padStart(2, '0')}</div><div class="muted">ساعات مذاكرة</div></div></div>
-     <div class="box stat"><div class="emo">🔁</div><div><div class="n">${hdone}/${dhs.length}</div><div class="muted">عادات يومية اتعملت</div></div></div>
+     <div class="box stat"><div class="emo">✅</div><div><div class="n">${total}</div><div class="muted">${X('إنجاز الأسبوع ده','Completions this week')}</div></div></div>
+     <div class="box stat"><div class="emo">🏆</div><div><div class="n" style="font-size:18px">${bestName}</div><div class="muted">${X('أكتر يوم نشاط','Most active day')} (${best.n})</div></div></div>
+     <div class="box stat"><div class="emo">⏱</div><div><div class="n">${fmtMin(focus)}</div><div class="muted">${X('وقت تركيز بومودورو','Pomodoro focus time')}</div></div></div>
+     <div class="box stat"><div class="emo">🔁</div><div><div class="n">${hdone}/${dhs.length}</div><div class="muted">${X('عادات يومية اتعملت','Daily habits completed')}</div></div></div>
     </div>
-    <h2>📈 نشاط كل يوم</h2><div class="box"><div class="wbars">${days.map(x => `<div class="c"><div class="b" style="height:${Math.round(x.n / maxv * 100)}%;${x.future ? 'opacity:.25' : ''}" title="${x.d}: ${x.n}"></div><div class="lb">${dnames[C.parse(x.d).getDay()]}</div></div>`).join('')}</div></div>
-    <h2>🔥 السلاسل الحالية</h2><div class="box list">${streaks.length ? streaks.map(([n, i]) => `<a class="row" href="#/item/${i.id}"><div class="t"><b>${esc(i.title)}</b><span class="muted">${i.type === 'habit' ? 'عادة' : 'مهمة'}</span></div><span class="chip warn">🔥 ${n}</span></a>`).join('') : '<div class="empty"><b>🌱</b>لسه مفيش سلاسل. علّم عادة أو مهمة النهارده</div>'}</div><h2>📝 المراجعة الأسبوعية</h2><a class="btn pri" href="#/review">ابدأ مراجعة الأسبوع</a>`;
+    <h2>🗓 ${X('الجدول الأسبوعي','Weekly timeline')}</h2><div class="muted">${X('المهام ذات وقت البداية والمدة المحددة تظهر في يومها.','Tasks with a start time appear on their scheduled day.')}</div><div class="week-timeline">${timeline}</div>${flexibleHtml}
+    <h2>⏱ ${X('تحليل الوقت: المتوقع مقابل الفعلي','Time analytics: estimated vs actual')}</h2><div class="grid g2"><div class="box stat"><div><div class="n">${fmtMin(analytics.totalEstimate)}</div><div class="muted">${X('إجمالي الوقت المتوقع','Total estimated time')}</div></div></div><div class="box stat"><div><div class="n">${fmtMin(analytics.totalActual)}</div><div class="muted">${X('إجمالي وقت بومودورو الفعلي','Total actual Pomodoro time')}</div></div></div></div>
+    <p class="muted">${X('ملاحظة: جلسات بومودورو القديمة التي لم تسجل نوع الجلسة تُحسب كوقت تركيز؛ الجلسات الجديدة تستبعد الاستراحات تلقائيًا.','Note: older Pomodoro logs without a session type are counted as focus; new break sessions are excluded automatically.')}</p><p class="muted">${X('تقدير المهمة = المدة المحددة × مرات تكرارها في الأسبوع؛ الكتب والكورسات تستخدم التقدير الأسبوعي الاختياري في بيانات العنصر.','Task estimate = set duration × occurrences this week; books and courses use the optional weekly estimate saved on the item.')}</p><h3>${X('حسب المهمة','By task')}</h3><div class="box">${taskTable}</div><h3>${X('حسب الموضوع / التصنيف','By subject / category')}</h3><div class="box">${subjectTable}</div>
+    <h2>📈 ${X('نشاط كل يوم','Daily activity')}</h2><div class="box"><div class="wbars">${days.map(x => `<div class="c"><div class="b" style="height:${Math.round(x.n / maxv * 100)}%;${x.future ? 'opacity:.25' : ''}" title="${x.d}: ${x.n}"></div><div class="lb">${weekDayLabel(x.d)}</div></div>`).join('')}</div></div>
+    <h2>🔥 ${X('السلاسل الحالية','Current streaks')}</h2><div class="box list">${streaks.length ? streaks.map(([n, i]) => `<a class="row" href="#/item/${i.id}"><div class="t"><b>${esc(i.title)}</b><span class="muted">${i.type === 'habit' ? X('عادة','Habit') : X('مهمة','Task')}</span></div><span class="chip warn">🔥 ${n}</span></a>`).join('') : `<div class="empty"><b>🌱</b>${X('لسه مفيش سلاسل. علّم عادة أو مهمة النهارده','No streaks yet. Complete a task or habit today.')}</div>`}</div><h2>📝 ${X('المراجعة الأسبوعية','Weekly reflection')}</h2><a class="btn pri" href="#/review">${X('ابدأ مراجعة الأسبوع','Start weekly review')}</a>`;
   }
   const noon2 = d => new Date(d.getFullYear(), d.getMonth(), d.getDate(), 12);
 
@@ -756,7 +842,7 @@ const Core = (() => {
     const sel = its.filter(x => x[0] === cal.sel && x[1].type !== 'habit').map(x => x[1]);
     const dh2 = ofType('habit').filter(h => h.freq === 'daily');
     const title = first.toLocaleDateString(state.settings.lang === 'en' ? 'en-US' : 'ar-EG-u-nu-latn', { month: 'long', year: 'numeric' });
-    return `<div class="hrow"><h1>📆 التقويم</h1><span><button class="btn" data-act="icsExport">⬇ ICS</button> <button class="btn pri" data-act="calplan">＋ خطة في اليوم المحدد</button></span></div>
+    return `<div class="hrow"><h1>📆 التقويم</h1><span><button class="btn" data-act="icsExport">⬇ ICS</button> <a class="btn" href="#/day">🕒 جدول اليوم</a> <button class="btn pri" data-act="calplan">＋ خطة في اليوم المحدد</button></span></div>
     <div class="calh"><button class="btn" data-act="calnav" data-v="-1" aria-label="الشهر اللي فات">›</button><b>${title}</b><button class="btn" data-act="calnav" data-v="1" aria-label="الشهر الجاي">‹</button></div>
     <div class="cal">${names.map(n => `<div class="hd">${isEn() ? L(n).slice(0, 3) : ({ 'السبت': 'سبت', 'الأحد': 'أحد', 'الاثنين': 'إثنين', 'الثلاثاء': 'ثلاثاء', 'الأربعاء': 'أربعاء', 'الخميس': 'خميس', 'الجمعة': 'جمعة' })[n]}</div>`).join('')}${cells}</div>
     <div class="stat2 muted"><span><i style="color:${KC.plan}">●</i> خطة</span><span><i style="color:${KC.cert}">●</i> امتحان</span><span><i style="color:${KC.task}">●</i> مهمة بموعد</span><span><i style="color:${KC.habit}">●</i> عادة اتعملت</span></div>
@@ -766,12 +852,26 @@ const Core = (() => {
     ${dh2.length ? `<h2>🔁 عادات اليوم ده</h2><div class="box list">${dh2.map(h => { const dd2 = C.parse(cal.sel); const dn2 = C.isDone(h, dd2); return `<div class="row ${dn2 ? 'done' : ''}"><button class="ck ${dn2 ? 'on' : ''}" data-act="habtick" data-id="${h.id}" data-d="${cal.sel}" aria-label="تم">${dn2 ? '✓' : ''}</button><div class="t"><a href="#/item/${h.id}">${esc(h.title)}</a></div></div>`; }).join('')}</div>` : ''}`;
   }
 
+  let dayViewDate = null;
+  function dayView() {
+    const dstr = dayViewDate || C.ymd(now()), today = C.ymd(now()), d = C.parse(dstr);
+    const all = ofType('task').filter(t => {
+      if (t.freq === 'once') return (t.due === dstr) || (t.doneDate === dstr) || (!t.due && dstr === today);
+      return C.showsToday(t, d);
+    });
+    const timed = all.filter(t => t.startTime).sort((a,b) => a.startTime.localeCompare(b.startTime));
+    const untimed = all.filter(t => !t.startTime).sort((a,b) => PRANK[prioOf(a)] - PRANK[prioOf(b)]);
+    const row = t => `<div class="row"><span class="chip" style="min-width:76px;text-align:center">${t.startTime ? esc(t.startTime) : 'بدون وقت'}</span><div class="t"><a href="#/item/${t.id}"><b>${esc(t.title)}</b></a><span class="muted">${t.durationMin ? esc(String(t.durationMin)) + ' دقيقة' : 'مدة غير محددة'}${t.cat ? ' · ' + esc(t.cat) : ''}</span></div><button class="ck ${C.isDone(t,d) ? 'on' : ''}" data-act="tick" data-id="${t.id}" aria-label="تم">${C.isDone(t,d) ? '✓' : ''}</button></div>`;
+    return `<div class="hrow"><h1>🕒 جدول اليوم</h1><button class="btn pri" data-act="dayAddTask">＋ مهمة بوقت</button></div><div class="box"><div class="fld"><label for="day-date">اليوم</label><input id="day-date" type="date" value="${dstr}"></div><button class="btn sm" data-act="dayToday">العودة للنهارده</button></div><h2>⏰ المهام المجدولة (${timed.length})</h2><div class="box list">${timed.length ? timed.map(row).join('') : '<div class="empty">مفيش مهام محددة بوقت في اليوم ده</div>'}</div><h2>📋 مهام بدون وقت (${untimed.length})</h2><div class="box list">${untimed.length ? untimed.map(row).join('') : '<div class="empty">كل المهام محددة بوقت أو لا توجد مهام</div>'}</div>`;
+  }
+
   function fieldInput(f, val, attr) {
     const [k, l, t, opts] = f; const v = val == null ? '' : val;
     if (t === 'select') { let os = opts; if (v !== '' && v != null && !opts.some(o => String(o[0]) === String(v))) os = opts.concat([[v, v]]); return `<select ${attr} data-f="${k}">${os.map(([ov, ol]) => `<option value="${esc(ov)}" ${String(ov) === String(v) ? 'selected' : ''}>${esc(ol)}</option>`).join('')}</select>`; }
     if (t === 'cat') return `<input ${attr} data-f="${k}" list="cats" value="${esc(v)}" placeholder="اختر أو اكتب"><datalist id="cats">${CATS.map(c => `<option value="${esc(c)}">`).join('')}</datalist>`;
     if (t === 'num') return `<input ${attr} data-f="${k}" type="number" inputmode="numeric" min="0" value="${esc(v)}">`;
     if (t === 'date') return `<input ${attr} data-f="${k}" type="date" value="${esc(v)}">`;
+    if (t === 'time') return `<input ${attr} data-f="${k}" type="time" value="${esc(v)}">`;
     if (t === 'url') return `<input ${attr} data-f="${k}" type="url" dir="ltr" value="${esc(v)}" placeholder="https://">`;
     return `<input ${attr} data-f="${k}" type="text" value="${esc(v)}">`;
   }
@@ -789,18 +889,22 @@ const Core = (() => {
     if (it.type === 'cert') { const dl = C.daysLeft(it.date, d), tp = C.topicsPerDay(it, d); prog = `<div class="box" style="margin-top:12px"><b>${dl == null ? 'حدد تاريخ الامتحان' : dl > 0 ? 'باقي ' + dl + ' يوم' : dl === 0 ? 'الامتحان النهارده' : 'الامتحان عدّى'}</b> <span class="muted">· المواضيع ${pct(it)}%</span>${bar(it)}${tp ? `<div class="muted" style="margin-top:6px">محتاج ${tp} موضوع في اليوم</div>` : ''}<div class="big-btns"><button class="btn" data-act="pomo" data-id="${it.id}">⏱ مؤقت مذاكرة</button></div>${it.focus ? `<div class="muted" style="margin-top:4px">⏱ مجموع المذاكرة: ${Math.round(it.focus / 60 * 10) / 10} ساعة</div>` : ''}</div>`; }
     if (it.type === 'task') { const st = C.streak(it, d); prog = `<div class="box" style="margin-top:12px;display:flex;align-items:center;gap:10px"><button class="ck ${C.isDone(it, d) ? 'on' : ''}" data-act="tick" data-id="${it.id}">${C.isDone(it, d) ? '✓' : ''}</button><span>${C.isDone(it, d) ? 'تمت في الفترة الحالية' : 'لسه'}</span>${st ? `<span class="chip warn">🔥 سلسلة ${st}</span>` : ''}${it.focus ? `<span class="chip">⏱ ${Math.round(it.focus / 60 * 10) / 10} س</span>` : ''}<button class="btn sm" data-act="pomo" data-id="${it.id}">⏱ مؤقت</button></div>`; }
     if (it.type === 'habit') { const st2 = C.streak(it, d); prog = `<div class="box" style="margin-top:12px"><div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><button class="ck ${C.isDone(it, d) ? 'on' : ''}" data-act="tick" data-id="${it.id}">${C.isDone(it, d) ? '✓' : ''}</button><span>${C.isDone(it, d) ? 'اتعملت في الفترة الحالية' : 'لسه'}</span>${st2 ? `<span class="chip warn">🔥 سلسلة ${st2}</span>` : ''}${it.focus ? `<span class="chip">⏱ ${Math.round(it.focus / 60 * 10) / 10} س</span>` : ''}<button class="btn sm" data-act="pomo" data-id="${it.id}">⏱ مؤقت</button></div>${it.freq === 'daily' ? `<div class="h7" style="margin-top:10px">${[13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0].map(n => `<i class="${C.isDone(it, C.addDays(d, -n)) ? 'on' : ''}"></i>`).join('')}</div><div class="muted" style="margin-top:4px">آخر 14 يوم</div>` : ''}</div>`; }
-    const todosLabel = it.type === 'cert' ? 'مواضيع الامتحان' : it.type === 'task' ? 'مهام فرعية' : 'قائمة تحقق';
+    const todosLabel = it.type === 'cert' ? 'مواضيع الامتحان' : it.type === 'task' ? 'قائمة تحقق إضافية' : 'قائمة تحقق';
     const todos = (it.todos || []).map((x, i) => `<div class="tl ${x.d ? 'd' : ''}"><button class="ck ${x.d ? 'on' : ''}" data-act="todo" data-id="${it.id}" data-i="${i}">${x.d ? '✓' : ''}</button><input class="tinp" data-te="${i}" data-id="${it.id}" value="${esc(x.t)}" aria-label="تعديل"><button class="x" data-act="deltodo" data-id="${it.id}" data-i="${i}" aria-label="حذف">×</button></div>`).join('');
     const quotes = (it.quotes || []).map((x, i) => `<div class="tl"><span>“${esc(x.t)}”</span><button class="x" data-act="delquote" data-id="${it.id}" data-i="${i}" aria-label="حذف">×</button></div>`).join('');
+    const subtasks = (it.type === 'task' ? (it.subtasks || []) : []).map((x, i) => `<div class="tl ${x.done ? 'd' : ''}"><button class="ck ${x.done ? 'on' : ''}" data-act="subtaskTick" data-id="${it.id}" data-subid="${x.id}" aria-label="${x.done ? 'إلغاء إنجاز' : 'إنجاز المهمة الفرعية'}">${x.done ? '✓' : ''}</button><input class="tinp" data-subtask-edit="${x.id}" data-id="${it.id}" value="${esc(x.t)}" aria-label="تعديل المهمة الفرعية"><button class="x" data-act="subtaskDel" data-id="${it.id}" data-subid="${x.id}" aria-label="حذف المهمة الفرعية">×</button></div>`).join('');
+    const linkedNotes = ['book','playlist','cert'].includes(it.type) ? (it.linkedNotes || []).map(x => `<div class="box" style="margin:8px 0"><div class="muted" style="font-size:12px;margin-bottom:5px">${x.created ? dfmt(x.created) : 'ملاحظة مرتبطة'}</div><textarea class="notes" data-linked-note-edit="${x.id}" data-id="${it.id}" rows="3" aria-label="تعديل الملاحظة المرتبطة">${esc(x.text)}</textarea><div class="big-btns"><button class="btn sm pri" data-act="linkedNoteSave" data-id="${it.id}" data-noteid="${x.id}">حفظ التعديل</button><button class="btn sm bad" data-act="linkedNoteDel" data-id="${it.id}" data-noteid="${x.id}">حذف</button></div></div>`).join('') : '';
     return `<div style="margin:0 0 8px"><button class="btn sm" data-act="back">→ رجوع</button></div>${hasCover ? `<div class="hero" style="--g:${grad(it)}">${u ? `<img src="${esc(u)}" alt="" onerror="this.remove()">` : ''}<div class="acts"><label class="btn sm" style="cursor:pointer">📷 صورة من الجهاز<input type="file" accept="image/*" id="cfile" hidden></label><button class="btn sm" data-act="coverurl" data-id="${it.id}">🔗 رابط</button>${it.type === 'book' || it.type === 'movie' ? `<button class="btn sm" data-act="autocover" data-id="${it.id}">🔎 تلقائي</button>` : ''}${it.cover ? `<button class="btn sm" data-act="coverrm" data-id="${it.id}">إزالة</button>` : ''}</div></div>` : '<div style="height:6px"></div>'}
     <div class="dhead" ${hasCover ? '' : 'style="margin-top:8px"'}>${hasCover ? `<div class="poster">${coverEl(it)}</div>` : ''}<div class="ttl"><textarea class="big" rows="2" data-f="title" aria-label="العنوان">${esc(it.title)}</textarea><span class="chip">${tdef.icon} ${tdef.label}</span> <button class="favb" data-act="fav" data-id="${it.id}" aria-label="مفضلة">${it.fav ? '⭐' : '☆'}</button></div></div>
     ${hasCover ? `<div class="muted" style="margin-top:8px" id="coverhint">${it.type === 'book' || it.type === 'movie' ? `مفيش صورة؟ <a style="color:var(--ac)" target="_blank" rel="noopener" href="https://www.google.com/search?tbm=isch&q=${title}">دوّر على ${it.type === 'book' ? 'غلاف' : 'بوستر'}</a> وانزّل الصورة وارفعها من الجهاز.` : ''}</div>` : ''}
     ${prog}${detAlert(it, d)}
     <div class="props"><div class="prop"><label>الأيقونة</label><input data-f="icon" value="${esc(it.icon || '')}" placeholder="${tdef.icon}" maxlength="4"></div>${tdef.fields.filter(f => visible(f, it)).map(f => `<div class="prop"><label>${f[1]}</label>${fieldInput(f, it[f[0]])}</div>`).join('')}</div>
     <h2>☑️ ${todosLabel}${subPct(it) != null ? ` <small class="muted">${subPct(it)}%</small>` : ''}</h2>${subPct(it) != null ? `<div class="bar ${subPct(it) >= 100 ? 'ok' : ''}"><i style="width:${subPct(it)}%"></i></div>` : ''}<div id="todos">${todos}</div>
-    <div class="tl"><input type="text" id="newtodo" placeholder="${it.type === 'task' ? 'أضف مهمة فرعية واضغط Enter' : 'أضف بند واضغط Enter'}"><button class="btn" data-act="addtodo" data-id="${it.id}">إضافة</button></div>
+    <div class="tl"><input type="text" id="newtodo" placeholder="${it.type === 'task' ? 'أضف بند قائمة التحقق واضغط Enter' : 'أضف بند واضغط Enter'}"><button class="btn" data-act="addtodo" data-id="${it.id}">إضافة</button></div>
+    ${it.type === 'task' ? `<h2>🧩 المهام الفرعية المستقلة <small class="muted">${(it.subtasks || []).filter(x => x.done).length}/${(it.subtasks || []).length}</small></h2><p class="muted">إنجاز كل مهمة فرعية مستقل ولا يغيّر حالة المهمة الرئيسية.</p><div id="subtasks-list">${subtasks || '<div class="empty">مفيش مهام فرعية لسه</div>'}</div><div class="tl"><input id="new-subtask" maxlength="500" placeholder="أضف مهمة فرعية مستقلة…"><button class="btn" data-act="subtaskAdd" data-id="${it.id}">إضافة</button></div>` : ''}
     ${it.type === 'book' ? `<h2>💬 اقتباسات</h2><div id="quotes">${quotes}</div><div class="tl"><input type="text" id="newquote" placeholder="أضف اقتباس واضغط Enter"><button class="btn" data-act="addquote" data-id="${it.id}">إضافة</button></div>` : ''}
     <h2>📝 ملاحظات</h2><textarea class="notes" id="notes" data-id="${it.id}" placeholder="اكتب ملاحظاتك، ملخص الكتاب، رأيك في الفيلم...">${esc(it.notes || '')}</textarea>
+    ${['book','playlist','cert'].includes(it.type) ? `<h2>🔗 ملاحظات مرتبطة بالعنصر</h2><p class="muted">ملاحظات مستقلة مرتبطة بهذا الكتاب أو الكورس، مع الاحتفاظ بالملاحظات الأساسية كما هي.</p><div id="linked-notes">${linkedNotes || '<div class="empty">مفيش ملاحظات مرتبطة لسه</div>'}</div><div class="tl"><textarea id="new-linked-note" rows="3" maxlength="10000" placeholder="اكتب ملاحظة أو ملخصًا أو فكرة…"></textarea><button class="btn" data-act="linkedNoteAdd" data-id="${it.id}">إضافة ملاحظة</button></div>` : ''}
     <div style="margin-top:20px"><button class="btn bad" data-act="del" data-id="${it.id}">🗑 حذف</button></div>`;
   }
 
@@ -826,7 +930,7 @@ const Core = (() => {
   // ---------- quick capture, more menu and weekly reflection ----------
   function inboxItems() { state.settings.inbox = Array.isArray(state.settings.inbox) ? state.settings.inbox : []; return state.settings.inbox; }
   function morePage() {
-    const links = [['#/movies','🎬','الأفلام والمسلسلات'],['#/learning','🎓','التعلّم'],['#/plans','📅','الخطط'],['#/calendar','📆','التقويم'],['#/week','📊','إحصائيات الأسبوع'],['#/review','📝','المراجعة الأسبوعية'],['#/inbox','📥','صندوق الوارد'],['#/goals','🎯','أهداف السنة'],['#/report','📈','التقرير الشهري'],['#/yearplan','🗓','الخطة السنوية'],['#/settings','⚙️','الإعدادات']];
+    const links = [['#/movies','🎬','الأفلام والمسلسلات'],['#/learning','🎓','التعلّم'],['#/plans','📅','الخطط'],['#/calendar','📆','التقويم'],['#/day','🕒','جدول اليوم'],['#/week','📊','إحصائيات الأسبوع'],['#/review','📝','المراجعة الأسبوعية'],['#/inbox','📥','صندوق الوارد'],['#/goals','🎯','أهداف السنة'],['#/report','📈','التقرير الشهري'],['#/yearplan','🗓','الخطة السنوية'],['#/settings','⚙️','الإعدادات']];
     return `<h1>☰ المزيد</h1><div class="box list">${links.map(x => `<a class="row" href="${x[0]}"><span style="font-size:22px">${x[1]}</span><b class="t">${x[2]}</b><span class="muted">‹</span></a>`).join('')}</div>`;
   }
   function inboxPage() {
@@ -860,7 +964,7 @@ const Core = (() => {
   function updateTaskResults() { updateOnly('#task-results', tasks()); }
   function updateCollectionResults(k) { const map = { book: [['book'],'الكتب','📚'], movie: [['movie'],'الأفلام والمسلسلات','🎬'], 'cert+playlist': [['cert','playlist'],'التعلّم','🎓'], plan: [['plan'],'الخطط والإجازات','📅'] }; const v = map[k]; if (v) updateOnly('#collection-results', collection(v[0], v[1], v[2])); }
   // ---------- router ----------
-  const NAV = [['#/', '🏠', 'الرئيسية'], ['#/tasks', '✅', 'المهام'], ['#/more', '☰', 'المزيد'], ['#/inbox', '📥', 'صندوق الوارد'], ['#/review', '📝', 'المراجعة الأسبوعية'], ['#/habits', '🔁', 'العادات'], ['#/books', '📚', 'الكتب'], ['#/movies', '🎬', 'الأفلام'], ['#/learning', '🎓', 'التعلّم'], ['#/plans', '📅', 'الخطط'], ['#/money', '💰', 'المصاريف'], ['#/calendar', '📆', 'التقويم'], ['#/report', '📈', 'التقرير الشهري'], ['#/week', '📊', 'الأسبوع'], ['#/goals', '🎯', 'أهداف السنة'], ['#/yearplan', '🗓', 'الخطة السنوية'], ['#/settings', '⚙️', 'الإعدادات']];
+  const NAV = [['#/', '🏠', 'الرئيسية'], ['#/tasks', '✅', 'المهام'], ['#/day', '🕒', 'جدول اليوم'], ['#/more', '☰', 'المزيد'], ['#/inbox', '📥', 'صندوق الوارد'], ['#/review', '📝', 'المراجعة الأسبوعية'], ['#/habits', '🔁', 'العادات'], ['#/books', '📚', 'الكتب'], ['#/movies', '🎬', 'الأفلام'], ['#/learning', '🎓', 'التعلّم'], ['#/plans', '📅', 'الخطط'], ['#/money', '💰', 'المصاريف'], ['#/calendar', '📆', 'التقويم'], ['#/report', '📈', 'التقرير الشهري'], ['#/week', '📊', 'الأسبوع'], ['#/goals', '🎯', 'أهداف السنة'], ['#/yearplan', '🗓', 'الخطة السنوية'], ['#/settings', '⚙️', 'الإعدادات']];
   /*FEATURES*/
   /*MONEY*/
   const mx = { tab: 'sum', m: null, draft: null, fcat: '', pasteTxt: '', jsonTxt: '' };
@@ -1406,7 +1510,7 @@ const Core = (() => {
     const fin = state.items.filter(i => ['book', 'movie', 'cert', 'playlist'].includes(i.type) && isFin(i) && inM(i.doneDate));
     const started = state.items.filter(i => ['book', 'cert', 'playlist'].includes(i.type) && inM(i.sdate) && !isFin(i));
     const going = state.items.filter(i => ['book', 'cert', 'playlist'].includes(i.type) && !isFin(i) && C.progress(i) > 0 && C.progress(i) < 1);
-    const lg = state.log.filter(l => inM(l.d)); const ticks = lg.filter(l => l.k !== 'p' && l.k !== 'b'); const focus = lg.filter(l => l.k === 'p').reduce((s, l) => s + (+l.m || 0), 0);
+    const lg = state.log.filter(l => inM(l.d)); const ticks = lg.filter(l => l.k !== 'p' && l.k !== 'b'); const focus = lg.filter(l => l.k === 'p' && l.kind !== 'break').reduce((s, l) => s + (+l.m || 0), 0);
     const days = new Set(lg.map(l => l.d)).size;
     const c = mxCalc(k); const tx = (e ? e.tx : []).filter(t => inM(t.d)).sort((a, b) => mn(b.amt) - mn(a.amt));
     const cats = Object.entries(c.byCat).sort((a, b) => b[1] - a[1]);
@@ -1543,7 +1647,9 @@ const EN = {'د':'m','س':'h','ص':'p','و':'&',
 'مرتبط بعناصر معينة':'Linked to specific items','عدد كتب أخلصها':'Number of books to finish','عدد أفلام أشوفها':'Number of movies to watch','عدد كورسات وشهادات أخلصها':'Number of courses and certificates to finish','أهداف السنة':'Yearly goals','تعديل هدف':'Edit goal','هدف جديد':'New goal','اسم الهدف':'Goal name','نوع الهدف':'Goal type','المستهدف':'Target','عدد':'count','خلصت قبل كده':'Already finished before','رقم تبدأ بيه':'starting number','اختر العناصر المرتبطة':'Choose the linked items','مفيش عناصر لسه':'No items yet','اكتب اسم الهدف الأول':'Type the goal name first','مفيش أهداف لسه':'No goals yet','اضغط هدف جديد':'tap New goal','التقدم بيتحسب تلقائي من الكتب والكورسات والمهام المرتبطة':'Progress is calculated automatically from the linked books, courses and tasks','لأهداف العدد، بيتحسب اللي تخلصه بعد إنشاء الهدف مع رقم تبدأ بيه':'For count goals, it counts what you finish after creating the goal plus a starting number','هدف':'goal'
 };
   Object.assign(EN, {"اليوم":"Day","التوقع تخلص":"Expected finish","الخطة السنوية": "Annual plan", "تنبيهات": "Alerts", "متأخر عن الخطة": "Behind plan", "الشهادة بتنتهي بعد": "Certificate expires in", "يوم، جدّدها": "days, renew it", "ملخص الفترة": "Period summary", "أسبوع": "Week", "شهر": "Month", "ربع سنة": "Quarter", "سنة": "Year", "مهام اتنفذت": "Tasks completed", "عادات اتعملت": "Habits done", "مهام ميعادها في الفترة": "Tasks due in period", "وقت مذاكرة": "Study time", "كتب خلصتها": "Books finished", "كورسات وشهادات خلصتها": "Courses and certificates finished", "أفلام شفتها": "Movies watched", "امتحانات في الفترة": "Exams in period", "اللي خلصته في الفترة": "Finished in period", "مهام الفترة": "Period tasks", "امتحانات الفترة": "Period exams", "كل المهام": "All tasks", "الربع": "Quarter", "لسه مبدأتش": "Not started", "بدأت": "Started", "متوقف": "Paused", "ضيف للخطة": "Add to plan", "ضيف للخطة السنوية": "Add to annual plan", "خلصت من الخطة": "finished from the plan", "كورسات للإنجاز": "Courses to finish", "كتب للقراءة": "Books to read", "مفيش كتب في خطة السنة دي": "No books in this year plan", "مفيش كورسات في خطة السنة دي": "No courses in this year plan", "مفيش امتحانات في خطة السنة دي": "No exams in this year plan", "امتحانات شهادات": "Certification exams", "دوّر على غلاف": "Search for a cover", "ضمن خطة سنة": "In plan of year", "حالة الكورس": "Course status", "المحاضر": "Instructor", "تاريخ البدء": "Start date", "تاريخ الانتهاء": "End date", "سعر الامتحان": "Exam price", "مركز": "Center", "مكان الامتحان": "Exam location", "تاريخ انتهاء الشهادة": "Certificate expiry date", "تجديد": "renewal", "الشهادة انتهت، جدّدها": "Certificate expired, renew it", "الشهادة بتنتهي النهارده": "Certificate expires today", "السابق": "Previous", "التالي": "Next", "الحالي": "Current", "شيل من الخطة": "Remove from plan", "أهداف السنة": "Yearly goals", "مفيش عناصر متاحة": "No items available", "أضف كتاب أو كورس أو شهادة الأول": "Add a book, course or certificate first", "اضغط ضيف للخطة": "Tap Add to plan", "خلصت": "Done", "نجحت": "Passed", "التعلّم": "Learning"});
+  Object.assign(EN, {'وقت البداية (اختياري)':'Start time (optional)','المدة بالدقائق (اختياري)':'Duration in minutes (optional)','وقت البداية':'Start time','المدة بالدقائق':'Duration in minutes','جدول اليوم':'Day schedule','المهام الفرعية المستقلة':'Independent subtasks','إنجاز كل مهمة فرعية مستقل ولا يغيّر حالة المهمة الرئيسية.':'Each subtask is completed independently and does not change the parent task status.','مفيش مهام فرعية لسه':'No subtasks yet','أضف مهمة فرعية مستقلة…':'Add an independent subtask…','قائمة تحقق إضافية':'Additional checklist','ملاحظات مرتبطة بالعنصر':'Notes linked to this item','ملاحظات مستقلة مرتبطة بهذا الكتاب أو الكورس، مع الاحتفاظ بالملاحظات الأساسية كما هي.':'Separate notes linked to this book or course; the original notes remain unchanged.','مفيش ملاحظات مرتبطة لسه':'No linked notes yet','اكتب ملاحظة أو ملخصًا أو فكرة…':'Write a note, summary, or idea…','إضافة ملاحظة':'Add note','حفظ التعديل':'Save changes','حذف المهمة الفرعية':'Delete subtask','تعديل المهمة الفرعية':'Edit subtask','إلغاء إنجاز':'Undo completion','إنجاز المهمة الفرعية':'Complete subtask','فتح لوحة الأوامر':'Open command palette','لوحة الأوامر':'Command palette','ابحث عن صفحة أو إجراء بسرعة':'Quickly find a page or action','اكتب اسم الصفحة أو الإجراء…':'Type a page or action…','اختصار لوحة المفاتيح: Ctrl + K أو ⌘ + K':'Keyboard shortcut: Ctrl + K or ⌘ + K','إضافة مهمة':'Add task','إضافة كتاب':'Add book','إضافة كورس':'Add course','فتح':'Open','إضافة':'Add','بدون وقت':'Unscheduled','مدة غير محددة':'Duration not set','مفيش مهام محددة بوقت في اليوم ده':'No time-blocked tasks for this day','مهام بدون وقت':'Unscheduled tasks','العودة للنهارده':'Back to today','مهمة بوقت':'Timed task'});
   Object.assign(EN, {'متأكد إنك عايز تحذف العنصر ده؟': 'Are you sure you want to delete this item?', 'مفيش مهام هنا. اكتب مهمة في المربع اللي فوق واضغط «إضافة»': 'No tasks here. Type a task in the box above and tap Add', 'تراجع': 'Undo', 'تنزيل النسخة المحفوظة': 'Download saved copy', 'تمام': 'OK', 'استرجاع نسخة ما قبل الاستيراد': 'Restore pre-import copy', 'تنزيل نسخة الاسترجاع': 'Download recovery copy', 'إعادة تحميل': 'Reload', 'حصلت مشكلة غير متوقعة': 'Something went wrong', 'بياناتك لسه محفوظة. صدّر نسخة احتياطية قبل أي حاجة': 'Your data is still saved. Export a backup first', 'البيانات المحفوظة كانت تالفة واتحفظت نسخة منها': 'Saved data was corrupted; a copy was kept', 'مفيش نسخة محفوظة': 'No saved copy', 'المصاريف': 'Expenses', 'التقرير الشهري': 'Monthly report', 'مهام، كتب، شهادات، مصاريف، طلبات': 'tasks, books, certificates, expenses, errands'});
+  Object.assign(EN, {'وقت متوقع أسبوعيًا بالدقائق (اختياري)':'Weekly estimated time in minutes (optional)','الأسبوع السابق':'Previous week','الأسبوع التالي':'Next week','الأسبوع الحالي':'This week','الجدول الأسبوعي':'Weekly timeline','المهام ذات وقت البداية والمدة المحددة تظهر في يومها.':'Tasks with a start time appear on their scheduled day.','لا توجد مهام مجدولة':'No scheduled tasks','مهام أسبوعية بدون يوم محدد':'Weekly tasks without a set day','تحليل الوقت: المتوقع مقابل الفعلي':'Time analytics: estimated vs actual','إجمالي الوقت المتوقع':'Total estimated time','إجمالي وقت بومودورو الفعلي':'Total actual Pomodoro time','حسب المهمة':'By task','حسب الموضوع / التصنيف':'By subject / category','المهمة':'Task','متوقع':'Estimated','فعلي':'Actual','الفرق':'Difference','الموضوع / التصنيف':'Subject / category','متوقع أسبوعيًا':'Weekly estimate','مقارنة':'Comparison','وقت تركيز بومودورو':'Pomodoro focus time','لا توجد بيانات وقت كافية لهذا الأسبوع.':'Not enough time data for this week yet.','سجّل جلسات بومودورو أو حدّد مدة متوقعة للمهام لعرض المقارنة.':'Log Pomodoro sessions or set task estimates to see comparisons.','مراجعة الأسبوع':'Weekly review','اليوم':'Day','معاينة النسخة الاحتياطية':'Backup preview','راجع محتويات الملف قبل استبدال بيانات التطبيق.':'Review the backup contents before replacing app data.','جلسة تركيز':'Focus sessions','سجل مالي':'Finance records','عناصر غير صالحة تم استبعادها':'Invalid items excluded','البيانات الحالية على هذا الجهاز':'Current items on this device','سيتم حفظ نسخة منها قبل الاستبدال.':'A copy will be saved before replacement.','بعض السجلات غير الصالحة سيتم استبعادها.':'Some invalid records will be excluded.','تأكيد الاستعادة':'Confirm restore','إلغاء':'Cancel','عنصر':'Items','وقت متوقع':'Estimated time','تقدير المهمة = المدة المحددة × مرات تكرارها في الأسبوع؛ الكتب والكورسات تستخدم التقدير الأسبوعي الاختياري في بيانات العنصر.':'Task estimate = set duration × occurrences this week; books and courses use the optional weekly estimate saved on the item.','ملاحظة: جلسات بومودورو القديمة التي لم تسجل نوع الجلسة تُحسب كوقت تركيز؛ الجلسات الجديدة تستبعد الاستراحات تلقائيًا.':'Note: older Pomodoro logs without a session type are counted as focus; new break sessions are excluded automatically.'});
   const RUNRE = /[\u0600-\u06FF]+(?:[ ،]+[\u0600-\u06FF]+)*/g;
   const HASAR = /[\u0600-\u06FF]/;
   let USET = new Set();
@@ -1613,7 +1719,8 @@ const EN = {'د':'m','س':'h','ص':'p','و':'&',
     sheet(`<h3>✏️ تعديل</h3><div class="fld"><label>العنوان</label><input id="e-title" value="${esc(it.title)}" maxlength="200"></div>
     <div class="fld"><label>التكرار</label><select id="e-freq">${fq.map(([f, l]) => `<option value="${f}" ${it.freq === f ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
     <div class="fld"><label>التصنيف</label><input id="e-cat" value="${esc(it.cat || '')}" maxlength="60"></div>
-    ${it.type === 'task' ? `<div class="fld"><label>الأهمية</label><select id="e-prio">${PRIO.map(([f, l]) => `<option value="${f}" ${prioOf(it) === f ? 'selected' : ''}>${l}</option>`).join('')}</select></div><div class="fld"><label>الموعد</label><input type="date" id="e-due" value="${esc(it.due || '')}"></div>` : ''}
+    ${it.type === 'task' ? `<div class="fld"><label>الأهمية</label><select id="e-prio">${PRIO.map(([f, l]) => `<option value="${f}" ${prioOf(it) === f ? 'selected' : ''}>${l}</option>`).join('')}</select></div><div class="fld"><label>الموعد</label><input type="date" id="e-due" value="${esc(it.due || '')}"></div><div class="fld"><label>وقت البداية</label><input type="time" id="e-start" value="${esc(it.startTime || '')}"></div><div class="fld"><label>المدة بالدقائق</label><input type="number" min="1" max="1440" id="e-duration" value="${esc(it.durationMin || '')}"></div>` : ''}
+    ${['book','playlist','cert'].includes(it.type) ? `<div class="fld"><label>${X('وقت متوقع أسبوعيًا بالدقائق (اختياري)','Weekly estimated time in minutes (optional)')}</label><input type="number" min="1" max="1000000" id="e-weekestimate" value="${esc(it.weeklyEstimateMin || '')}"></div>` : ''}
     <div class="big-btns"><button class="btn pri" data-act="rsave" data-id="${id}">حفظ</button><button class="btn" data-act="closesheet">إلغاء</button><a class="btn" href="#/item/${id}" data-act="closesheet">تفاصيل</a></div>`);
     setTimeout(() => { const e = $('#e-title'); if (e) e.focus(); }, 50);
   }
@@ -1621,7 +1728,8 @@ const EN = {'د':'m','س':'h','ص':'p','و':'&',
     const it = find(id); if (!it) return; const t = $('#e-title').value.trim();
     if (!t) { toast('العنوان مينفعش يبقى فاضي'); return; }
     it.title = t; it.freq = $('#e-freq').value; it.cat = $('#e-cat').value.trim();
-    if (it.type === 'task') { it.prio = $('#e-prio').value; const dv = $('#e-due').value; if (it.freq === 'once') { if (dv) it.due = dv; else delete it.due; } else delete it.due; }
+    if (it.type === 'task') { it.prio = $('#e-prio').value; const dv = $('#e-due').value; if (it.freq === 'once') { if (dv) it.due = dv; else delete it.due; } else delete it.due; const st = $('#e-start').value, du = C.num($('#e-duration').value); if (st && /^([01]\d|2[0-3]):[0-5]\d$/.test(st)) { it.startTime = st; removeTombstone('taskField_startTime', id); } else { delete it.startTime; addTombstone('taskField_startTime', id); } if (du >= 1 && du <= 1440) { it.durationMin = du; removeTombstone('taskField_durationMin', id); } else { delete it.durationMin; addTombstone('taskField_durationMin', id); } }
+    if (['book','playlist','cert'].includes(it.type)) { const we = C.num($('#e-weekestimate').value), had = it.weeklyEstimateMin != null; if (we >= 1 && we <= 1000000) { it.weeklyEstimateMin = we; removeTombstone('itemField_weeklyEstimateMin', id); } else { delete it.weeklyEstimateMin; if (had) addTombstone('itemField_weeklyEstimateMin', id); } }
     save(); closeSheet(); toast('تم التعديل'); render();
   }
   const TPLS = [
@@ -1758,7 +1866,7 @@ const EN = {'د':'m','س':'h','ص':'p','و':'&',
     const typeOf = id => { const x = find(id); return x ? x.type : ''; };
     const tk = logs.filter(l => l.k !== 'p' && l.k !== 'b' && typeOf(l.id) === 'task').length;
     const hb = logs.filter(l => l.k !== 'p' && l.k !== 'b' && typeOf(l.id) === 'habit').length;
-    const focus = logs.filter(l => l.k === 'p').reduce((a, l) => a + C.num(l.m), 0);
+    const focus = logs.filter(l => l.k === 'p' && l.kind !== 'break').reduce((a, l) => a + C.num(l.m), 0);
     const fin = t => state.items.filter(i => t.includes(i.type) && isFin(i) && inR(i.doneDate, R)).length;
     const bks = fin(['book']), crs = fin(['cert', 'playlist']), mv = fin(['movie']);
     const due = ofType('task').filter(t => t.freq === 'once' && inR(t.due, R));
@@ -1846,6 +1954,7 @@ const EN = {'د':'m','س':'h','ص':'p','و':'&',
     else if (h === '#/learning') html = collection(['cert', 'playlist'], 'التعلّم', '🎓');
     else if (h === '#/plans') html = collection(['plan'], 'الخطط والإجازات', '📅');
     else if (h === '#/calendar') html = calendar();
+    else if (h === '#/day') html = dayView();
     else if (h === '#/goals') html = goalsPage();
     else if (h === '#/yearplan') html = yearPlan();
     else if (h === '#/money') html = money_();
@@ -1854,7 +1963,7 @@ const EN = {'د':'m','س':'h','ص':'p','و':'&',
     else { html = dashboard() + mxMini(); cur = '#/'; }
     $('#view').innerHTML = html;
     if (h === '#/money') updDraft();
-    if (!m && !['#/settings', '#/money', '#/report', '#/week', '#/goals', '#/yearplan', '#/tasks', '#/more', '#/inbox', '#/review'].includes(cur) && !$('#view .fab')) { const fb = document.createElement('button'); fb.className = 'fab'; fb.dataset.act = 'add'; if (cur === '#/tasks') fb.dataset.t = 'task'; if (cur === '#/habits') fb.dataset.t = 'habit'; fb.setAttribute('aria-label', 'إضافة'); fb.textContent = '+'; $('#view').appendChild(fb); }
+    if (!m && !['#/settings', '#/money', '#/report', '#/week', '#/goals', '#/yearplan', '#/tasks', '#/day', '#/more', '#/inbox', '#/review'].includes(cur) && !$('#view .fab')) { const fb = document.createElement('button'); fb.className = 'fab'; fb.dataset.act = 'add'; if (cur === '#/tasks') fb.dataset.t = 'task'; if (cur === '#/habits') fb.dataset.t = 'habit'; fb.setAttribute('aria-label', 'إضافة'); fb.textContent = '+'; $('#view').appendChild(fb); }
     document.querySelectorAll('[data-nav]').forEach(a => a.classList.toggle('on', a.getAttribute('href') === cur || (a.closest('.tabs') && a.getAttribute('href') === '#/more' && !['#/','#/tasks','#/habits','#/books','#/money'].includes(cur))));
     ensureButtonLabels();
     document.body.classList.remove('menu');
@@ -1882,7 +1991,7 @@ const EN = {'د':'m','س':'h','ص':'p','و':'&',
     const title = $('#f-title').value.trim();
     if (!title) { toast('اكتب العنوان الأول'); $('#f-title').focus(); return; }
     const it = Object.assign({ id: uid(), type, title, created: C.ymd(now()), todos: [], notes: '' }, DEFAULTS[type]);
-    document.querySelectorAll('#sheet [data-new]').forEach(el => { const k = el.dataset.f; const f = T[type].fields.find(x => x[0] === k); let v = el.value; if (f[2] === 'num' || k === 'rating') v = C.num(v); it[k] = v; });
+    document.querySelectorAll('#sheet [data-new]').forEach(el => { const k = el.dataset.f; const f = T[type].fields.find(x => x[0] === k); let v = el.value; if (f[2] === 'num' || k === 'rating') v = C.num(v); if ((k === 'startTime' || k === 'durationMin') && (el.value === '' || (k === 'durationMin' && (!(v > 0) || v > 1440)))) return; if (k === 'weeklyEstimateMin' && (el.value === '' || !(v >= 1) || v > 1000000)) return; it[k] = v; });
     if (it.type === 'task' || it.type === 'habit') it.done = {};
     if (it.type === 'task' && it.freq !== 'once') delete it.due;
     if (it.type === 'task' && it.freq !== 'weekly') delete it.wd;
@@ -1940,16 +2049,26 @@ const EN = {'د':'m','س':'h','ص':'p','و':'&',
     const blob = new Blob([JSON.stringify(state)], { type: 'application/json' }); const a = document.createElement('a');
     a.href = URL.createObjectURL(blob); a.download = 'mutabeti-backup-' + C.ymd(now()) + '.json'; document.body.appendChild(a); a.click(); a.remove(); toast('تم التصدير');
   }
+  let pendingImport = null;
   function doImport(text) {
-    let v = null, total = 0;
-    try { const raw = JSON.parse(text); total = Array.isArray(raw && raw.items) ? raw.items.length : 0; v = C.validate(raw); } catch (e) { }
-    if (!v) { toast('الملف مش نسخة احتياطية صالحة'); return false; }
+    pendingImport = null;
+    let raw = null, v = null, total = 0;
+    try { raw = JSON.parse(text); total = Array.isArray(raw && raw.items) ? raw.items.length : 0; v = C.validate(raw); } catch (e) { }
+    if (!v) { toast(X('الملف مش نسخة احتياطية صالحة','This is not a valid backup file')); return false; }
     const lost = Math.max(0, total - v.items.length);
-    const msg = 'هتستبدل كل بياناتك الحالية (' + state.items.length + ' عنصر) بالنسخة دي (' + v.items.length + ' عنصر).' + (lost ? '\nتنبيه: ' + lost + ' عنصر تالف في الملف هيتشال.' : '') + '\nهنحتفظ بنسخة من بياناتك الحالية قبل الاستبدال. تكمل؟';
-    if (!window.confirm(msg)) return false;
+    const types = [['task','المهام','Tasks'],['habit','العادات','Habits'],['book','الكتب','Books'],['movie','الأفلام','Movies'],['playlist','الكورسات','Courses'],['cert','الشهادات','Certificates'],['plan','الخطط','Plans']];
+    const counts = types.map(([k,a,e]) => ({ label: X(a,e), n: v.items.filter(i => i.type === k).length })).filter(x => x.n);
+    const expCounts = v.exp ? ['tx','inc','loans','lists','fixed','errands','savingsGoals'].reduce((n,k)=>n+(Array.isArray(v.exp[k])?v.exp[k].length:0),0) : 0;
+    pendingImport = v;
+    sheet(`<h3>📦 ${X('معاينة النسخة الاحتياطية','Backup preview')}</h3><p class="muted">${X('راجع محتويات الملف قبل استبدال بيانات التطبيق.','Review the backup contents before replacing app data.')}</p><div class="import-preview-grid"><div class="box"><b>${v.items.length}</b><div class="muted">${X('عنصر','Items')}</div></div><div class="box"><b>${(v.log||[]).filter(l=>l.k==='p'&&l.kind!=='break').length}</b><div class="muted">${X('جلسة تركيز','Focus sessions')}</div></div><div class="box"><b>${expCounts}</b><div class="muted">${X('سجل مالي','Finance records')}</div></div><div class="box"><b>${lost}</b><div class="muted">${X('عناصر غير صالحة تم استبعادها','Invalid items excluded')}</div></div></div><div class="box list">${counts.length ? counts.map(x=>`<div class="row"><span>${x.label}</span><b>${x.n}</b></div>`).join('') : `<div class="empty">${X('لا توجد عناصر','No items')}</div>`}</div><div class="muted">${X('البيانات الحالية على هذا الجهاز','Current items on this device')}: ${state.items.length}. ${X('سيتم حفظ نسخة منها قبل الاستبدال.','A copy will be saved before replacement.')}</div>${lost ? `<p class="muted" style="color:var(--warn)">⚠️ ${X('بعض السجلات غير الصالحة سيتم استبعادها.','Some invalid records will be excluded.')}</p>` : ''}<div class="big-btns"><button class="btn pri" data-act="importConfirm">${X('تأكيد الاستعادة','Confirm restore')}</button><button class="btn" data-act="importCancel">${X('إلغاء','Cancel')}</button></div>`);
+    return true;
+  }
+  function confirmImport() {
+    const v = pendingImport; if (!v) return;
+    pendingImport = null;
     try { localStorage.setItem(KEY + '_prev', JSON.stringify(state)); } catch (e) { }
     v.items.forEach(it => { if (['book', 'movie', 'cert', 'playlist'].includes(it.type) && isFin(it) && !it.doneDate) it.doneDate = '0000-00-00'; });
-    state = v; save(); toast('تم الاستيراد: ' + v.items.length + ' عنصر'); go('#/'); return true;
+    state = v; save(); closeSheet(); toast(X('تم الاستيراد: ','Imported: ') + v.items.length + X(' عنصر',' items')); go('#/');
   }
   function onImportFile(e) { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => doImport(String(r.result)); r.readAsText(f); e.target.value = ''; }
 
@@ -1989,16 +2108,16 @@ const EN = {'د':'m','س':'h','ص':'p','و':'&',
   const pfmt = s => Math.floor(s / 60) + ':' + String(Math.max(0, s) % 60).padStart(2, '0');
   function pomoSheet(id) {
     const it = find(id); if (!it) return;
-    pomo = { id, left: 25 * 60, mins: 25, run: false };
+    pomo = { id, left: 25 * 60, mins: 25, run: false, mode: 'focus' };
     sheet(`<h3>⏱ مؤقت مذاكرة</h3><div class="muted" style="margin-bottom:2px">${esc(it.title)}</div><div class="pomo" id="ptime">25:00</div>
-    <div class="big-btns" style="justify-content:center"><button class="btn pri" data-act="pstart" id="pstartbtn">ابدأ</button><button class="btn" data-act="preset" data-m="25">25 د</button><button class="btn" data-act="preset" data-m="5">5 استراحة</button><button class="btn" data-act="preset" data-m="50">50 د</button></div>
+    <div class="big-btns" style="justify-content:center"><button class="btn pri" data-act="pstart" id="pstartbtn">ابدأ</button><button class="btn" data-act="preset" data-m="25">25 د</button><button class="btn" data-act="preset" data-m="5" data-mode="break">5 استراحة</button><button class="btn" data-act="preset" data-m="50">50 د</button></div>
     <div class="muted" style="text-align:center;margin-top:8px">لما الوقت يخلص، المدة بتتسجل تلقائياً في مجموع ساعات مذاكرة العنصر ده وبتظهر في مراجعة الأسبوع.</div>
     <div style="text-align:center;margin-top:10px"><button class="btn" data-act="closesheet">قفل</button></div>`);
   }
   function pomoDone() {
     const it = pomo && find(pomo.id); if (!it || !pomo) return;
-    it.focus = (it.focus || 0) + pomo.mins;
-    state.log.push({ d: C.ymd(now()), id: it.id, k: 'p', m: pomo.mins });
+    if (pomo.mode !== 'break') it.focus = (it.focus || 0) + pomo.mins;
+    state.log.push({ sid: uid(), d: C.ymd(now()), id: it.id, k: 'p', m: pomo.mins, kind: pomo.mode === 'break' ? 'break' : 'focus' });
     save(); toast('🎉 خلصت الجلسة، اتسجلت ' + pomo.mins + ' دقيقة');
     pomo.left = pomo.mins * 60; pomo.run = false;
     const el = $('#ptime'); if (el) el.textContent = pfmt(pomo.left);
@@ -2016,11 +2135,12 @@ const EN = {'د':'m','س':'h','ص':'p','و':'&',
   let pendingDel = null;
   document.addEventListener('click', e => {
     const tr = e.target.closest('tr[data-href]'); if (tr) { location.hash = tr.dataset.href; return; }
+    const wd = e.target.closest('[data-weekday]'); if (wd) { dayViewDate = wd.dataset.weekday; go('#/day'); return; }
     const b = e.target.closest('[data-act]'); if (!b) { if (e.target.id === 'scrim') document.body.classList.remove('menu'); return; }
     const a = b.dataset.act, id = b.dataset.id, d = now();
     const it = id && find(id);
     switch (a) {
-      case 'tick': C.toggleTask(state, it, d); save(); if ((location.hash || '#/') === '#/tasks') updateTaskResults(); else render(); break;
+      case 'tick': C.toggleTask(state, it, location.hash === '#/day' ? C.parse(dayViewDate || C.ymd(now())) : d); save(); if ((location.hash || '#/') === '#/tasks') updateTaskResults(); else render(); break;
       case 'bump': {
         const dl = +b.dataset.d;
         if (it.type === 'playlist') C.bump(it, 'watched', 'total', dl); else C.bump(it, 'read', 'pages', dl);
@@ -2034,6 +2154,14 @@ const EN = {'د':'m','س':'h','ص':'p','و':'&',
       case 'todo': it.todos[+b.dataset.i].d = !it.todos[+b.dataset.i].d; save(); render(); break;
       case 'deltodo': it.todos.splice(+b.dataset.i, 1); save(); render(); break;
       case 'addtodo': { const i = $('#newtodo'); if (i.value.trim()) { it.todos = it.todos || []; it.todos.push({ t: i.value.trim(), d: false }); save(); render(); $('#newtodo').focus(); } break; }
+      case 'subtaskAdd': { const el = $('#new-subtask'), v = el && el.value.trim(); if (!it || !v) break; it.subtasks = Array.isArray(it.subtasks) ? it.subtasks : []; it.subtasks.push({ id: uid(), t: v.slice(0,500), done: false, updated: Date.now() }); save(); render(); break; }
+      case 'subtaskTick': { if (!it || !Array.isArray(it.subtasks)) break; const st = it.subtasks.find(x => x.id === b.dataset.subid); if (!st) break; st.done = !st.done; st.updated = Date.now(); save(); render(); break; }
+      case 'subtaskDel': { if (!it || !Array.isArray(it.subtasks)) break; const sid = b.dataset.subid; addTombstone('subtask', sid); it.subtasks = it.subtasks.filter(x => x.id !== sid); save(); render(); break; }
+      case 'linkedNoteAdd': { if (!it || !['book','playlist','cert'].includes(it.type)) break; const el = $('#new-linked-note'), v = el && el.value.trim(); if (!v) break; it.linkedNotes = Array.isArray(it.linkedNotes) ? it.linkedNotes : []; it.linkedNotes.push({ id: uid(), text: v.slice(0,10000), created: C.ymd(now()), updated: Date.now() }); save(); render(); break; }
+      case 'linkedNoteSave': { if (!it || !Array.isArray(it.linkedNotes)) break; const n = it.linkedNotes.find(x => x.id === b.dataset.noteid), el = document.querySelector('[data-linked-note-edit="' + b.dataset.noteid + '"]'); if (!n || !el) break; const v = el.value.trim(); if (!v) { toast('الملاحظة لا يمكن أن تكون فارغة'); break; } n.text = v.slice(0,10000); n.updated = Date.now(); save(); toast('تم حفظ الملاحظة'); render(); break; }
+      case 'linkedNoteDel': { if (!it || !Array.isArray(it.linkedNotes)) break; const nid = b.dataset.noteid; addTombstone('linkedNote', nid); it.linkedNotes = it.linkedNotes.filter(x => x.id !== nid); save(); render(); break; }
+      case 'dayToday': dayViewDate = C.ymd(now()); render(); break;
+      case 'dayAddTask': addForm('task', { freq: 'once', due: dayViewDate || C.ymd(now()) }); break;
       case 'fav': it.fav = !it.fav; save(); render(); break;
       case 'back': if (history.length > 1) history.back(); else go('#/'); break;
       case 'qadd': quickAdd(); break;
@@ -2041,6 +2169,8 @@ const EN = {'د':'m','س':'h','ص':'p','و':'&',
       case 'inboxDel': { addTombstone('inbox', id); state.settings.inbox = inboxItems().filter(x => x.id !== id); save(); render(); break; }
       case 'inboxTask': { const x = inboxItems().find(z => z.id === id); if (!x) break; addTombstone('inbox', id); state.items.push(Object.assign({ id: uid(), type: 'task', title: x.text, created: C.ymd(now()), todos: [], notes: '', done: {} }, DEFAULTS.task, { freq: 'once', due: C.ymd(now()) })); state.settings.inbox = inboxItems().filter(z => z.id !== id); save(); toast('اتحولت لمهمة'); go('#/tasks'); break; }
       case 'reviewSave': saveWeeklyReview(); break;
+      case 'weekShift': weekOffset = Math.max(-260, Math.min(260, weekOffset + Number(b.dataset.v || 0))); render(); break;
+      case 'weekNow': weekOffset = 0; render(); break;
       case 'icsExport': exportCalendarICS(); break;
       case 'qhadd': quickAddHabit(); break;
       case 'cpl': qs[b.dataset.k] = Object.assign(qs[b.dataset.k] || {}, { pl: b.dataset.v }); render(); break;
@@ -2049,7 +2179,7 @@ const EN = {'د':'m','س':'h','ص':'p','و':'&',
       case 'habtick': C.toggleTask(state, it, C.parse(b.dataset.d)); save(); render(); break;
       case 'pomo': pomoSheet(id); break;
       case 'pstart': if (pomo) { if (!pomo.run) { pomo.end = Date.now() + pomo.left * 1000; pomo.run = true; } else { pomo.left = Math.max(0, Math.ceil((pomo.end - Date.now()) / 1000)); pomo.run = false; } b.textContent = pomo.run ? 'وقفة' : 'كمل'; } break;
-      case 'preset': if (pomo) { pomo.mins = +b.dataset.m; pomo.left = pomo.mins * 60; pomo.run = false; const el2 = $('#ptime'); if (el2) el2.textContent = pfmt(pomo.left); const bb2 = $('#pstartbtn'); if (bb2) bb2.textContent = 'ابدأ'; } break;
+      case 'preset': if (pomo) { pomo.mins = +b.dataset.m; pomo.mode = b.dataset.mode === 'break' ? 'break' : 'focus'; pomo.left = pomo.mins * 60; pomo.run = false; const el2 = $('#ptime'); if (el2) el2.textContent = pfmt(pomo.left); const bb2 = $('#pstartbtn'); if (bb2) bb2.textContent = 'ابدأ'; } break;
       case 'addquote': { const iq = $('#newquote'); if (iq && iq.value.trim()) { it.quotes = it.quotes || []; it.quotes.push({ t: iq.value.trim() }); save(); render(); } break; }
       case 'delquote': it.quotes.splice(+b.dataset.i, 1); save(); render(); break;
       case 'calsel': cal.sel = b.dataset.v; render(); break;
@@ -2065,6 +2195,8 @@ const EN = {'د':'m','س':'h','ص':'p','و':'&',
       case 'dlraw': { try { const raw = localStorage.getItem(KEY + '_corrupt') || localStorage.getItem(KEY + '_dropped'); if (raw) dlText('mutabeti-recovered-' + C.ymd(now()) + '.json', raw, 'application/json'); else toast('مفيش نسخة محفوظة'); } catch (e) { toast('تعذّر قراءة النسخة'); } break; }
       case 'dismissraw': loadInfo.corrupt = false; loadInfo.dropped = 0; render(); break;
       case 'restoreprev': { try { const raw = localStorage.getItem(KEY + '_prev'); if (raw) doImport(raw); } catch (e) { } break; }
+      case 'importConfirm': confirmImport(); break;
+      case 'importCancel': pendingImport = null; closeSheet(); break;
       case 'reloadapp': location.reload(); break;
       case 'snooze': state.settings.bkSnooze = Date.now() + 864e5; save(); render(); break;
       case 'gedit': goalSheet(b.dataset.id); break;
@@ -2085,6 +2217,7 @@ const EN = {'د':'m','س':'h','ص':'p','و':'&',
       case 'add': b.dataset.t ? addForm(b.dataset.t) : addChooser(); break;
       case 'create': create(b.dataset.t); break;
       case 'closesheet': closeSheet(); break;
+      case 'cmdadd': closeSheet(); addForm(b.dataset.t); break;
       case 'coverurl': coverUrlForm(id); break;
       case 'coversave': { const v = $('#curl').value.trim(); if (!/^https?:\/\//i.test(v)) { toast('الرابط لازم يبدأ بـ http'); break; } it.cover = v; save(); closeSheet(); render(); break; }
       case 'coverrm': delete it.cover; save(); render(); break;
@@ -2104,9 +2237,19 @@ const EN = {'د':'m','س':'h','ص':'p','و':'&',
         break;
     }
   });
+  const CMD_ITEMS = [
+    ['#/','🏠','الرئيسية'],['#/tasks','✅','المهام'],['#/day','🕒','جدول اليوم'],['#/habits','🔁','العادات'],['#/books','📚','الكتب'],['#/learning','🎓','التعلّم والكورسات'],['#/movies','🎬','الأفلام'],['#/plans','📅','الخطط'],['#/calendar','📆','التقويم'],['#/money','💰','المصاريف'],['#/inbox','📥','صندوق الوارد'],['#/review','📝','المراجعة الأسبوعية'],['#/goals','🎯','أهداف السنة'],['#/report','📈','التقرير الشهري'],['#/settings','⚙️','الإعدادات'],[null,'＋','إضافة مهمة','task'],[null,'📚','إضافة كتاب','book'],[null,'🎓','إضافة كورس','playlist']
+  ];
+  function commandPalette() {
+    sheet(`<h3>⌘ لوحة الأوامر</h3><p class="muted">ابحث عن صفحة أو إجراء بسرعة</p><input id="cmdq" type="search" placeholder="اكتب اسم الصفحة أو الإجراء…" autocomplete="off"><div id="cmdresults" class="box list" style="margin-top:10px"></div><div class="muted" style="margin-top:8px">اختصار لوحة المفاتيح: Ctrl + K أو ⌘ + K</div>`);
+    const renderCmd = () => { const q = ($('#cmdq').value || '').trim().toLowerCase(); const found = CMD_ITEMS.filter(x => !q || (x[1] + ' ' + x[2]).toLowerCase().includes(q)); $('#cmdresults').innerHTML = found.map(x => x[0] ? `<a class="row" href="${x[0]}" data-act="closesheet"><b>${x[1]}</b><span class="t">${esc(x[2])}</span><span class="muted">فتح ←</span></a>` : `<button class="row" style="width:100%;text-align:right" data-act="cmdadd" data-t="${x[3]}"><b>${x[1]}</b><span class="t">${esc(x[2])}</span><span class="muted">إضافة ←</span></button>`).join('') || '<div class="empty">مفيش نتائج</div>'; };
+    renderCmd(); $('#cmdq').addEventListener('input', renderCmd); setTimeout(() => $('#cmdq') && $('#cmdq').focus(), 40);
+  }
   function setCats(g, l) { state.settings.cats = state.settings.cats || {}; if (l) state.settings.cats[g] = l; else delete state.settings.cats[g]; save(); render(); }
   function catAdd(g) { const el = $('#newcat-' + g); const v = el && el.value.trim(); if (!v) return; const l = catList(g).slice(); if (l.includes(v)) { toast('التصنيف موجود'); return; } l.push(v); setCats(g, l); }
   document.addEventListener('change', e => {
+    if (e.target.id === 'day-date') { dayViewDate = e.target.value || C.ymd(now()); render(); return; }
+    if (e.target.dataset && e.target.dataset.subtaskEdit) { const it0 = find(e.target.dataset.id), st = it0 && (it0.subtasks || []).find(x => x.id === e.target.dataset.subtaskEdit), v = e.target.value.trim(); if (st && v) { st.t = v.slice(0,500); st.updated = Date.now(); save(); } else if (st) { e.target.value = st.t; toast('اكتب اسم المهمة الفرعية'); } return; }
     if (e.target.dataset && e.target.dataset.fsel) { const d = e.target.dataset, v = e.target.value, q0 = qs[d.k] || {}; if (d.fsel === 'ctype') qs[d.k] = Object.assign(q0, { t: v, st: 'all' }); else if (d.fsel === 'cst') qs[d.k] = Object.assign(q0, { st: v }); else if (d.fsel === 'cgn') qs[d.k] = Object.assign(q0, { g: v }); else if (d.fsel === 'cpl') qs[d.k] = Object.assign(q0, { pl: v }); else if (d.fsel === 'tsort') tf.sort = v; else if (d.fsel === 'tfreq') tf.freq = v; else if (d.fsel === 'tcat') tf.cat = v; else if (d.fsel === 'mxtab') mx.tab = v; else if (d.fsel === 'iper') mx.ip = +v; else if (d.fsel === 'isort') mx.is = v; render(); return; }
     if (e.target.dataset && e.target.dataset.te != null && e.target.dataset.id) {
       const it0 = find(e.target.dataset.id); const v0 = e.target.value.trim();
@@ -2121,8 +2264,13 @@ const EN = {'د':'m','س':'h','ص':'p','و':'&',
     const id = location.hash.split('/')[2]; const it = find(id); if (!it) return;
     const f = T[it.type].fields.find(x => x[0] === k);
     let v = el.value; if (f && (f[2] === 'num')) v = C.num(v); if (k === 'rating') v = C.num(v);
+    if (it.type === 'task' && (k === 'startTime' || k === 'durationMin') && (el.value === '' || (k === 'durationMin' && (!(v > 0) || v > 1440)))) { delete it[k]; addTombstone(k === 'startTime' ? 'taskField_startTime' : 'taskField_durationMin', it.id); save(); render(); return; }
+    if (it.type === 'task' && k === 'startTime' && !/^([01]\d|2[0-3]):[0-5]\d$/.test(String(v))) { delete it[k]; save(); render(); return; }
     if (k === 'title') { v = v.replace(/\s+/g, ' ').trim(); if (!v) { el.value = it.title; toast('العنوان مينفعش يبقى فاضي'); return; } }
     it[k] = v;
+    if (it.type === 'task' && k === 'startTime') removeTombstone('taskField_startTime', it.id);
+    if (it.type === 'task' && k === 'durationMin') removeTombstone('taskField_durationMin', it.id);
+    if (['book','playlist','cert'].includes(it.type) && k === 'weeklyEstimateMin') { if (!(v >= 1 && v <= 1000000)) { const had = it.weeklyEstimateMin != null; delete it.weeklyEstimateMin; if (had) addTombstone('itemField_weeklyEstimateMin', it.id); save(); render(); return; } removeTombstone('itemField_weeklyEstimateMin', it.id); }
     if (it.type === 'playlist' && k === 'cs' && v === 'done' && C.num(it.total) > 0) it.watched = C.num(it.total);
     if (it.type === 'playlist' && k === 'cs' && v === 'new') it.watched = 0;
     if ((k === 'cs' && v !== 'new') || (k === 'status' && it.type === 'cert' && v !== 'planned')) { if (!it.sdate) it.sdate = C.ymd(now()); }
@@ -2137,11 +2285,13 @@ const EN = {'د':'m','س':'h','ص':'p','و':'&',
     if (el.id === 'notes') { const it = find(el.dataset.id); if (it) { it.notes = el.value; clearTimeout(window.__nt); window.__nt = setTimeout(save, 300); } }
     if (el.id === 'tq') { tf.q = el.value; debounceSearch('tasks', updateTaskResults); }
     if (el.id === 'cq') { const k = el.dataset.k; qs[k] = Object.assign(qs[k] || {}, { q: el.value }); debounceSearch('collection-' + k, () => updateCollectionResults(k)); }
-    if (el.id === 'gq') { debounceSearch('global', () => { const q = el.value.trim().toLowerCase(); const box = $('#gres'); if (!box) return; if (!q) { box.innerHTML = ''; return; } const r = state.items.filter(i => (i.title + ' ' + (i.author || '') + ' ' + (i.code || '') + ' ' + (i.cat || '') + ' ' + (i.notes || '')).toLowerCase().includes(q)).slice(0, 8); const xr = mxSearch(q); box.innerHTML = `<div class="box list" style="margin-top:8px">${r.length || xr ? r.map(rowItem).join('') + xr : '<div class="empty">مفيش نتائج</div>'}</div>`; }); }
+    if (el.id === 'gq') { debounceSearch('global', () => { const q = el.value.trim().toLowerCase(); const box = $('#gres'); if (!box) return; if (!q) { box.innerHTML = ''; return; } const r = state.items.filter(i => (i.title + ' ' + (i.author || '') + ' ' + (i.code || '') + ' ' + (i.cat || '') + ' ' + (i.notes || '') + ' ' + (i.subtasks || []).map(x => x.t).join(' ') + ' ' + (i.linkedNotes || []).map(x => x.text).join(' ')).toLowerCase().includes(q)).slice(0, 8); const xr = mxSearch(q); box.innerHTML = `<div class="box list" style="margin-top:8px">${r.length || xr ? r.map(rowItem).join('') + xr : '<div class="empty">مفيش نتائج</div>'}</div>`; }); }
     if (el.id === 'sname') { state.settings.name = el.value; save(); }
   });
   document.addEventListener('keydown', e => {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); commandPalette(); return; }
     if (e.key === 'Enter' && e.target.id === 'newtodo') { const id = location.hash.split('/')[2]; const it = find(id); const v = e.target.value.trim(); if (it && v) { it.todos = it.todos || []; it.todos.push({ t: v, d: false }); save(); render(); $('#newtodo').focus(); } }
+    if (e.key === 'Enter' && e.target.id === 'new-subtask') { e.preventDefault(); const id = location.hash.split('/')[2], it = find(id), v = e.target.value.trim(); if (it && v) { it.subtasks = Array.isArray(it.subtasks) ? it.subtasks : []; it.subtasks.push({ id: uid(), t: v.slice(0,500), done: false, updated: Date.now() }); save(); render(); $('#new-subtask').focus(); } }
     if (e.key === 'Enter' && e.target.id && e.target.id.startsWith('newcat-')) catAdd(e.target.id.slice(7));
     if (e.key === 'Enter' && e.target.id === 'qat') quickAdd();
     if (e.key === 'Enter' && (e.target.id === 'inbox-input' || e.target.id === 'inbox-quick')) { e.preventDefault(); const b = e.target.id === 'inbox-quick' ? document.querySelector('[data-act=\"inboxAddQuick\"]') : document.querySelector('[data-act=\"inboxAdd\"]'); if (b) b.click(); }
@@ -2154,6 +2304,7 @@ const EN = {'د':'m','س':'h','ص':'p','و':'&',
   $('#menubtn').onclick = () => document.body.classList.toggle('menu');
   $('#scrim').onclick = () => document.body.classList.remove('menu');
   $('#topadd').onclick = () => addChooser();
+  $('#cmdbtn').onclick = () => commandPalette();
   try { const th = localStorage.getItem(KEY + '_theme'); if (th && th !== 'auto') document.documentElement.setAttribute('data-theme', th); } catch (e) { }
   if (state.settings.lang === 'en') setLang('en', true);
   pwaInit();
@@ -2207,10 +2358,18 @@ const EN = {'د':'m','س':'h','ص':'p','و':'&',
   }
   function tombstones() { state.settings = state.settings || {}; return Array.isArray(state.settings._tombstones) ? state.settings._tombstones : (state.settings._tombstones = []); }
   function addTombstone(kind, id) { if (!id) return; const a = tombstones(); if (!a.some(x => x && x.kind === kind && x.id === id)) a.push({ kind, id, at: Date.now() }); }
+  function removeTombstone(kind, id) { state.settings._tombstones = tombstones().filter(x => !(x && x.kind === kind && x.id === id)); }
   function applyTombstones(data) {
     const s = data.settings || {}, ts = Array.isArray(s._tombstones) ? s._tombstones : [];
     const dead = new Set(ts.filter(x => x && typeof x.kind === 'string' && typeof x.id === 'string').map(x => x.kind + '|' + x.id));
     data.items = (data.items || []).filter(x => !dead.has('item|' + x.id));
+    data.items.forEach(x => {
+      if (Array.isArray(x.subtasks)) x.subtasks = x.subtasks.filter(n => !dead.has('subtask|' + n.id));
+      if (Array.isArray(x.linkedNotes)) x.linkedNotes = x.linkedNotes.filter(n => !dead.has('linkedNote|' + n.id));
+      if (dead.has('taskField_startTime|' + x.id)) delete x.startTime;
+      if (dead.has('taskField_durationMin|' + x.id)) delete x.durationMin;
+      if (dead.has('itemField_weeklyEstimateMin|' + x.id)) delete x.weeklyEstimateMin;
+    });
     data.log = (data.log || []).filter(x => !dead.has('item|' + x.id));
     if (Array.isArray(s.inbox)) s.inbox = s.inbox.filter(x => !dead.has('inbox|' + x.id));
     if (data.exp) {
@@ -2228,8 +2387,24 @@ const EN = {'د':'m','س':'h','ص':'p','و':'&',
     const settings = Object.assign({}, sb, sa, { _tombstones: [...tm.values()] });
     if (Array.isArray(sa.inbox) || Array.isArray(sb.inbox)) { const im = new Map(); (sa.inbox || []).forEach(x => im.set(x.id, x)); (sb.inbox || []).forEach(x => { if (!im.has(x.id)) im.set(x.id, x); }); settings.inbox = [...im.values()].filter(x => !dead.has('inbox|' + x.id)); }
     if (sa.weeklyReviews || sb.weeklyReviews) settings.weeklyReviews = Object.assign({}, sb.weeklyReviews || {}, sa.weeklyReviews || {});
-    const ids = new Set(a.items.map(i => i.id)); const items = a.items.concat(b.items.filter(i => !ids.has(i.id)));
-    const lk = new Set(a.log.map(l => l.d + '|' + l.id)); const log = a.log.concat(b.log.filter(l => !lk.has(l.d + '|' + l.id)));
+    const itemMap = new Map();
+    a.items.forEach(i => itemMap.set(i.id, i));
+    b.items.forEach(i => {
+      const old = itemMap.get(i.id);
+      if (!old) { itemMap.set(i.id, i); return; }
+      const mergedItem = Object.assign({}, i, old);
+      for (const key of ['subtasks','linkedNotes']) {
+        if (Array.isArray(old[key]) || Array.isArray(i[key])) {
+          const cm = new Map();
+          (old[key] || []).forEach(n => cm.set(n.id, n));
+          (i[key] || []).forEach(n => { const prev = cm.get(n.id); if (!prev || Number(n.updated || 0) > Number(prev.updated || 0)) cm.set(n.id, n); });
+          mergedItem[key] = [...cm.values()].filter(n => !dead.has((key === 'subtasks' ? 'subtask' : 'linkedNote') + '|' + n.id));
+        }
+      }
+      itemMap.set(i.id, mergedItem);
+    });
+    const items = [...itemMap.values()];
+    const logMap = new Map(); const logKey = l => l.sid ? 'sid|' + l.sid : l.d + '|' + l.id; a.log.forEach(l => logMap.set(logKey(l), l)); b.log.forEach(l => { const k = logKey(l); if (!logMap.has(k)) logMap.set(k, l); }); const log = [...logMap.values()];
     const merged = C.validate(Object.assign({}, b, a, { items, log, settings, exp: mergeExpense(a.exp, b.exp, settings._tombstones) }));
     return merged ? applyTombstones(merged) : null;
   }
