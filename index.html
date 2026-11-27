@@ -267,9 +267,9 @@ input:focus,select:focus,textarea:focus{outline:3px solid color-mix(in srgb,var(
  .banner h1{font-size:26px}
  .acts2 .btn{padding:8px 11px;font-size:13px}
  .box{padding:13px;border-radius:15px}
- .tabs{overflow-x:auto;justify-content:flex-start;scrollbar-width:none}
+ .tabs{overflow:hidden;justify-content:stretch;scrollbar-width:none}
  .tabs::-webkit-scrollbar{display:none}
- .tabs a{flex:0 0 68px;font-size:10px}
+ .tabs a{flex:1 1 0;min-width:0;padding:5px 1px;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
  .fab{bottom:88px;inset-inline-end:14px}
 }
 @media(max-width:480px){
