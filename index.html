@@ -289,6 +289,33 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 .toast[role="status"]{max-width:min(92vw,560px)}
 @media(prefers-reduced-motion:reduce){html:focus-within{scroll-behavior:auto}}
 
+/* English learning plan card — compact, reuses the existing Sabeely visual system */
+.en-plan{margin:14px 0 18px}
+.en-plan-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.en-plan-top h2{font-size:18px}
+.en-plan-stats{display:flex;gap:6px;flex-wrap:wrap}
+.en-plan-today{margin-top:12px;padding:10px;background:var(--bg2);border:1px solid var(--bd);border-radius:12px}
+.en-plan-subhead{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+.en-plan-checks{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px}
+.en-plan-check{display:flex;align-items:center;gap:7px;min-width:0;padding:8px;border:1px solid var(--bd);border-radius:9px;background:var(--bg)}
+.en-plan-check input{width:17px;height:17px;flex:none;accent-color:var(--ok)}
+.en-plan-check span{font-size:13px;line-height:1.35}
+.en-plan-check.done span{text-decoration:line-through;color:var(--tx2)}
+.en-plan-start{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:10px 0}
+.en-plan-weeks-title{font-size:15px;margin:12px 0 7px}
+.en-plan-weeks{display:flex;flex-direction:column;gap:7px}
+.en-plan-week{display:grid;grid-template-columns:minmax(0,1fr) 126px;gap:8px;align-items:center;padding:8px 9px;border:1px solid var(--bd);border-radius:10px}
+.en-plan-week-head{display:flex;align-items:flex-start;gap:8px;min-width:0}
+.en-plan-week-name{display:flex;align-items:center;gap:6px;flex-wrap:wrap;min-width:72px;padding-top:2px}
+.en-plan-details{flex:1;min-width:0;font-size:12px}
+.en-plan-details summary{color:var(--ac);font-weight:650;padding:2px 0}
+.en-plan-details .muted{margin-top:4px;line-height:1.45}
+.en-level-note{margin-top:7px;padding:6px 8px;border-radius:8px;background:var(--acbg);color:var(--ac);font-weight:600}
+.en-plan-test{display:flex;align-items:center;justify-content:flex-end;gap:5px;font-size:11px;color:var(--tx2);white-space:nowrap}
+.en-plan-test input{width:52px;padding:5px 6px;text-align:center;font-size:13px}
+@media(max-width:650px){.en-plan-checks{grid-template-columns:repeat(2,minmax(0,1fr))}.en-plan-week{grid-template-columns:minmax(0,1fr) 105px;padding:7px}.en-plan-test{font-size:10px}.en-plan-week-name{min-width:60px}}
+@media(max-width:390px){.en-plan-week{grid-template-columns:1fr}.en-plan-test{justify-content:flex-start;padding-inline-start:32px}}
+
 /* Stage 4: weekly timeline and focus analytics */
 .week-nav{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:10px 0}
 .week-nav .range{font-weight:700;flex:1;text-align:center;min-width:160px}
@@ -452,6 +479,41 @@ const Core = (() => {
       return true;
     }).map(fixItem);
     const settings = Object.assign({ name: '', views: {} }, data.settings && typeof data.settings === 'object' && !Array.isArray(data.settings) ? data.settings : {});
+    // Optional English-learning plan is stored under settings so older app versions preserve it.
+    if (settings.enPlan && typeof settings.enPlan === 'object' && !Array.isArray(settings.enPlan)) {
+      const ep = settings.enPlan, clean = {};
+      if (validDate(ep.start)) clean.start = ep.start;
+      clean.days = {};
+      if (ep.days && typeof ep.days === 'object' && !Array.isArray(ep.days)) {
+        Object.keys(ep.days).slice(0, 4000).forEach(day => {
+          const v = ep.days[day];
+          if (!validDate(day) || !v || typeof v !== 'object' || Array.isArray(v)) return;
+          const r = {};
+          ['w','l','s','r'].forEach(k => { if (v[k] === 0 || v[k] === 1 || v[k] === false || v[k] === true) r[k] = v[k] ? 1 : 0; });
+          ['_uw','_ul','_us','_ur','_u'].forEach(k => { if (Number.isFinite(Number(v[k])) && Number(v[k]) >= 0) r[k] = Number(v[k]); });
+          if (Object.keys(r).length) clean.days[day] = r;
+        });
+      }
+      clean.weeks = {};
+      if (ep.weeks && typeof ep.weeks === 'object' && !Array.isArray(ep.weeks)) {
+        Object.keys(ep.weeks).forEach(k => {
+          const n = Number(k), v = ep.weeks[k];
+          if (!Number.isInteger(n) || n < 1 || n > 12 || !v || typeof v !== 'object' || Array.isArray(v)) return;
+          clean.weeks[n] = { done: v.done ? 1 : 0, _u: Number.isFinite(Number(v._u)) && Number(v._u) >= 0 ? Number(v._u) : 0 };
+        });
+      }
+      clean.tests = {};
+      if (ep.tests && typeof ep.tests === 'object' && !Array.isArray(ep.tests)) {
+        Object.keys(ep.tests).forEach(k => {
+          const n = Number(k), v = ep.tests[k];
+          if (!Number.isInteger(n) || n < 1 || n > 12 || !v || typeof v !== 'object' || Array.isArray(v)) return;
+          const score = v.score === null ? null : Number(v.score);
+          if (score !== null && (!Number.isInteger(score) || score < 0 || score > 15)) return;
+          clean.tests[n] = { score, _u: Number.isFinite(Number(v._u)) && Number(v._u) >= 0 ? Number(v._u) : 0 };
+        });
+      }
+      settings.enPlan = clean;
+    } else if (settings.enPlan != null) delete settings.enPlan;
     const log = Array.isArray(data.log) ? data.log.filter(l => l && typeof l === 'object' && validId(l.id) && validDate(l.d) && (l.k == null || typeof l.k === 'string') && (l.sid == null || validId(l.sid)) && (l.m == null || (Number.isFinite(Number(l.m)) && Number(l.m) >= 0 && Number(l.m) <= 1440)) && (l.kind == null || l.kind === 'focus' || l.kind === 'break')) : [];
     if (Array.isArray(settings._tombstones)) settings._tombstones = settings._tombstones.filter(x => x && typeof x.kind === 'string' && x.kind.length <= 32 && validId(x.id) && (x.at == null || Number.isFinite(Number(x.at))));
     let exp = data.exp && typeof data.exp === 'object' && !Array.isArray(data.exp) ? data.exp : undefined;
@@ -687,6 +749,78 @@ const Core = (() => {
     <div class="tool"><input type="search" id="tq" placeholder="ابحث في المهام" value="${esc(tf.q)}"></div>
     <div class="fsel"><select data-fsel="tsort" aria-label="ترتيب"><option value="def"${(tf.sort || 'def') === 'def' ? ' selected' : ''}>ترتيب: الافتراضي</option><option value="prio"${tf.sort === 'prio' ? ' selected' : ''}>ترتيب: الأولوية</option></select><select data-fsel="tfreq" aria-label="التكرار"><option value="all"${tf.freq === 'all' ? ' selected' : ''}>كل التكرارات</option><option value="today"${tf.freq === 'today' ? ' selected' : ''}>النهارده</option><option value="overdue"${tf.freq === 'overdue' ? ' selected' : ''}>المتأخرة</option>${FREQ.map(([f, l]) => `<option value="${f}"${tf.freq === f ? ' selected' : ''}>${l}</option>`).join('')}</select>${cats.length ? `<select data-fsel="tcat" aria-label="التصنيف"><option value="all">كل التصنيفات</option>${cats.map(c => `<option value="${esc(c)}"${tf.cat === c ? ' selected' : ''}>${esc(c)}</option>`).join('')}</select>` : ''}</div>
     <div id="task-results">${groups || '<div class="empty"><b>📝</b>مفيش مهام هنا. اكتب مهمة في المربع اللي فوق واضغط «إضافة»</div>'}</div>`;
+  }
+
+  function enPlanState() {
+    state.settings = state.settings || {};
+    const p = state.settings.enPlan && typeof state.settings.enPlan === 'object' ? state.settings.enPlan : (state.settings.enPlan = {});
+    p.days = p.days && typeof p.days === 'object' ? p.days : {};
+    p.weeks = p.weeks && typeof p.weeks === 'object' ? p.weeks : {};
+    p.tests = p.tests && typeof p.tests === 'object' ? p.tests : {};
+    return p;
+  }
+  const EN_PLAN_WEEKS = [
+    ['الأساسيات: الحروف والنطق، تعريف نفسك، أرقام، أيام وشهور','to be (am/is/are) + this/that','تعرّف نفسك وتسأل أسئلة بسيطة'],
+    ['الأساسيات: الحروف والنطق، تعريف نفسك، أرقام، أيام وشهور','to be (am/is/are) + this/that','تعرّف نفسك وتسأل أسئلة بسيطة'],
+    ['الأسرة، البيت، الأكل، الروتين اليومي','Present simple + have/has + a/an/the','تحكي يومك في 5 جمل'],
+    ['الأسرة، البيت، الأكل، الروتين اليومي','Present simple + have/has + a/an/the','تحكي يومك في 5 جمل'],
+    ['الشغل، الفلوس، الشراء، الوقت','Questions (what, where, how much) + can/can’t + plurals','تسأل عن سعر وتطلب حاجة في محل'],
+    ['الشغل، الفلوس، الشراء، الوقت','Questions (what, where, how much) + can/can’t + plurals','تسأل عن سعر وتطلب حاجة في محل'],
+    ['الأماكن والمواصلات، الطقس، الهوايات','there is/there are + prepositions (in, on, at) + like + verb-ing','تشرح مكان وتوصف طريق'],
+    ['الأماكن والمواصلات، الطقس، الهوايات','there is/there are + prepositions (in, on, at) + like + verb-ing','تشرح مكان وتوصف طريق'],
+    ['اللي حصل: إجازة، أخبار، قصص قصيرة','Past simple (regular + common irregular)','تحكي حاجة حصلت امبارح أو في الأجازة'],
+    ['اللي حصل: إجازة، أخبار، قصص قصيرة','Past simple (regular + common irregular)','تحكي حاجة حصلت امبارح أو في الأجازة'],
+    ['الخطط والمستقبل، رسائل ومكالمات بسيطة','going to + will + want to + would like','تكتب رسالة قصيرة وتعمل محادثة 3 دقايق'],
+    ['الخطط والمستقبل، رسائل ومكالمات بسيطة','going to + will + want to + would like','تكتب رسالة قصيرة وتعمل محادثة 3 دقايق']
+  ];
+  function enPlanCurrentWeek(p, todayKey) {
+    if (!p.start) return 0;
+    const delta = C.daysBetween(C.parse(p.start), C.parse(todayKey));
+    return Math.max(1, Math.min(12, Math.floor(Math.max(0, delta) / 7) + 1));
+  }
+  function enPlanStreak(p, todayKey) {
+    const complete = d => { const x = p.days[d] || {}; return ['w','l','s','r'].every(k => x[k] === 1); };
+    let d = C.parse(todayKey);
+    if (!complete(todayKey)) d = C.addDays(d, -1);
+    let n = 0;
+    for (let i = 0; i < 3700; i++) {
+      const k = C.ymd(d);
+      if (!complete(k)) break;
+      n++; d = C.addDays(d, -1);
+    }
+    return n;
+  }
+  function englishPlanCard() {
+    const p = enPlanState(), todayKey = C.ymd(now()), day = p.days[todayKey] || {};
+    const keys = [['w','كلمات ١٠ دقايق'],['l','سماع ١٠ دقايق'],['s','كلام ٥ دقايق'],['r','كتابة ٥ دقايق']];
+    const done = keys.filter(x => day[x[0]] === 1).length, streak = enPlanStreak(p, todayKey);
+    const currentWeek = p.start ? enPlanCurrentWeek(p, todayKey) : 0;
+    const weekLabel = currentWeek ? (currentWeek >= 12 && C.daysBetween(C.parse(p.start), C.parse(todayKey)) >= 84 ? X('الأسبوع 12 من 12 · نهاية الخطة','Week 12 of 12 · plan complete') : X('الأسبوع الحالي','Current week') + ' ' + currentWeek + ' / 12') : X('الخطة لم تبدأ بعد','The plan has not started yet');
+    return `<section class="en-plan box" aria-labelledby="en-plan-title">
+      <div class="en-plan-top"><div><h2 id="en-plan-title" style="margin:0 0 3px">🇬🇧 ${X('خطة تعلّم الإنجليزية','English learning plan')}</h2><div class="muted">${X('12 أسبوعًا · من المبتدئ إلى A2/B1 تقريبًا · 30 دقيقة يوميًا · 6 أيام أسبوعيًا','12 weeks · beginner to around A2/B1 · 30 minutes/day · 6 days/week')}</div></div><div class="en-plan-stats"><span class="chip ac">🔥 ${streak} ${X('أيام','days')}</span><span class="chip">${done}/4 ${X('مهام اليوم','today tasks')}</span></div></div>
+      <div class="en-plan-today">
+        <div class="en-plan-subhead"><b>☀️ ${X('مهام النهارده','Today')}</b><span class="muted">${dfmt(todayKey)} · 30 ${X('دقيقة','min')}</span></div>
+        <div class="en-plan-checks">${keys.map(([k,label]) => `<label class="en-plan-check ${day[k] === 1 ? 'done' : ''}"><input type="checkbox" data-en-day="${k}" ${day[k] === 1 ? 'checked' : ''}><span>${X(label, ({'كلمات ١٠ دقايق':'Vocabulary · 10 min','سماع ١٠ دقايق':'Listening · 10 min','كلام ٥ دقايق':'Speaking · 5 min','كتابة ٥ دقايق':'Writing · 5 min'})[label])}</span></label>`).join('')}</div>
+      </div>
+      <div class="en-plan-start"><span class="muted">${weekLabel}${p.start ? ' · ' + X('بدأت','Started') + ' ' + dfmt(p.start) : ''}</span>${!p.start ? `<button class="btn pri sm" data-act="enStartPlan">${X('ابدأ الخطة','Start plan')}</button>` : ''}</div>
+      <h3 class="en-plan-weeks-title">${X('خطة الـ 12 أسبوع','12-week checklist')}</h3>
+      <div class="en-plan-weeks">${EN_PLAN_WEEKS.map((info, ix) => {
+        const w = ix + 1, rec = p.weeks[w] || {}, test = p.tests[w] || {}, level = [1,6,12].includes(w);
+        return `<div class="en-plan-week">
+          <div class="en-plan-week-head">
+            <button class="ck ${rec.done ? 'on' : ''}" data-act="enWeekTick" data-w="${w}" aria-label="${X('إنجاز الأسبوع','Mark week complete')} ${w}">${rec.done ? '✓' : ''}</button>
+            <div class="en-plan-week-name"><b>${X('الأسبوع','Week')} ${w}</b>${currentWeek === w ? `<span class="chip ac">${X('حالي','Current')}</span>` : ''}${rec.done ? `<span class="chip ok">${X('تم','Done')}</span>` : ''}</div>
+            <details class="en-plan-details"><summary>${X('التفاصيل','Details')}</summary>
+              <div class="muted"><b>${X('الموضوع','Topic')}:</b> ${X(info[0], ({'الأساسيات: الحروف والنطق، تعريف نفسك، أرقام، أيام وشهور':'Basics: alphabet and pronunciation, introducing yourself, numbers, days and months','الأسرة، البيت، الأكل، الروتين اليومي':'Family, home, food and daily routine','الشغل، الفلوس، الشراء، الوقت':'Work, money, shopping and time','الأماكن والمواصلات، الطقس، الهوايات':'Places and transport, weather and hobbies','اللي حصل: إجازة، أخبار، قصص قصيرة':'Past events: holidays, news and short stories','الخطط والمستقبل، رسائل ومكالمات بسيطة':'Plans and future, simple messages and calls'})[info[0]])}</div>
+              <div class="muted"><b>${X('القواعد','Grammar')}:</b> ${esc(info[1])}</div>
+              <div class="muted"><b>${X('الهدف','Goal')}:</b> ${X(info[2], ({'تعرّف نفسك وتسأل أسئلة بسيطة':'Introduce yourself and ask simple questions','تحكي يومك في 5 جمل':'Describe your day in 5 sentences','تسأل عن سعر وتطلب حاجة في محل':'Ask a price and order something in a shop','تشرح مكان وتوصف طريق':'Describe a place and give directions','تحكي حاجة حصلت امبارح أو في الأجازة':'Talk about something that happened yesterday or on holiday','تكتب رسالة قصيرة وتعمل محادثة 3 دقايق':'Write a short message and hold a 3-minute conversation'})[info[2]])}</div>
+              ${level ? `<div class="en-level-note">🎙️ ${X('قياس مستوى: سجّل صوتك دقيقة تعرّف فيها نفسك واكتب 5 جمل وقارن.','Level check: record one minute introducing yourself, write 5 sentences, and compare.')}</div>` : ''}
+            </details>
+          </div>
+          <label class="en-plan-test"><span>${X('اختبار الجمعة','Friday mini-test')} / 15</span><input type="number" min="0" max="15" step="1" inputmode="numeric" data-en-test="${w}" value="${test.score == null ? '' : test.score}" placeholder="—" aria-label="${X('درجة اختبار الأسبوع','Weekly test score')} ${w} / 15"></label>
+        </div>`;
+      }).join('')}</div>
+    </section>`;
   }
 
   let qs = {};
@@ -1650,6 +1784,22 @@ const EN = {'د':'m','س':'h','ص':'p','و':'&',
   Object.assign(EN, {'وقت البداية (اختياري)':'Start time (optional)','المدة بالدقائق (اختياري)':'Duration in minutes (optional)','وقت البداية':'Start time','المدة بالدقائق':'Duration in minutes','جدول اليوم':'Day schedule','المهام الفرعية المستقلة':'Independent subtasks','إنجاز كل مهمة فرعية مستقل ولا يغيّر حالة المهمة الرئيسية.':'Each subtask is completed independently and does not change the parent task status.','مفيش مهام فرعية لسه':'No subtasks yet','أضف مهمة فرعية مستقلة…':'Add an independent subtask…','قائمة تحقق إضافية':'Additional checklist','ملاحظات مرتبطة بالعنصر':'Notes linked to this item','ملاحظات مستقلة مرتبطة بهذا الكتاب أو الكورس، مع الاحتفاظ بالملاحظات الأساسية كما هي.':'Separate notes linked to this book or course; the original notes remain unchanged.','مفيش ملاحظات مرتبطة لسه':'No linked notes yet','اكتب ملاحظة أو ملخصًا أو فكرة…':'Write a note, summary, or idea…','إضافة ملاحظة':'Add note','حفظ التعديل':'Save changes','حذف المهمة الفرعية':'Delete subtask','تعديل المهمة الفرعية':'Edit subtask','إلغاء إنجاز':'Undo completion','إنجاز المهمة الفرعية':'Complete subtask','فتح لوحة الأوامر':'Open command palette','لوحة الأوامر':'Command palette','ابحث عن صفحة أو إجراء بسرعة':'Quickly find a page or action','اكتب اسم الصفحة أو الإجراء…':'Type a page or action…','اختصار لوحة المفاتيح: Ctrl + K أو ⌘ + K':'Keyboard shortcut: Ctrl + K or ⌘ + K','إضافة مهمة':'Add task','إضافة كتاب':'Add book','إضافة كورس':'Add course','فتح':'Open','إضافة':'Add','بدون وقت':'Unscheduled','مدة غير محددة':'Duration not set','مفيش مهام محددة بوقت في اليوم ده':'No time-blocked tasks for this day','مهام بدون وقت':'Unscheduled tasks','العودة للنهارده':'Back to today','مهمة بوقت':'Timed task'});
   Object.assign(EN, {'متأكد إنك عايز تحذف العنصر ده؟': 'Are you sure you want to delete this item?', 'مفيش مهام هنا. اكتب مهمة في المربع اللي فوق واضغط «إضافة»': 'No tasks here. Type a task in the box above and tap Add', 'تراجع': 'Undo', 'تنزيل النسخة المحفوظة': 'Download saved copy', 'تمام': 'OK', 'استرجاع نسخة ما قبل الاستيراد': 'Restore pre-import copy', 'تنزيل نسخة الاسترجاع': 'Download recovery copy', 'إعادة تحميل': 'Reload', 'حصلت مشكلة غير متوقعة': 'Something went wrong', 'بياناتك لسه محفوظة. صدّر نسخة احتياطية قبل أي حاجة': 'Your data is still saved. Export a backup first', 'البيانات المحفوظة كانت تالفة واتحفظت نسخة منها': 'Saved data was corrupted; a copy was kept', 'مفيش نسخة محفوظة': 'No saved copy', 'المصاريف': 'Expenses', 'التقرير الشهري': 'Monthly report', 'مهام، كتب، شهادات، مصاريف، طلبات': 'tasks, books, certificates, expenses, errands'});
   Object.assign(EN, {'وقت متوقع أسبوعيًا بالدقائق (اختياري)':'Weekly estimated time in minutes (optional)','الأسبوع السابق':'Previous week','الأسبوع التالي':'Next week','الأسبوع الحالي':'This week','الجدول الأسبوعي':'Weekly timeline','المهام ذات وقت البداية والمدة المحددة تظهر في يومها.':'Tasks with a start time appear on their scheduled day.','لا توجد مهام مجدولة':'No scheduled tasks','مهام أسبوعية بدون يوم محدد':'Weekly tasks without a set day','تحليل الوقت: المتوقع مقابل الفعلي':'Time analytics: estimated vs actual','إجمالي الوقت المتوقع':'Total estimated time','إجمالي وقت بومودورو الفعلي':'Total actual Pomodoro time','حسب المهمة':'By task','حسب الموضوع / التصنيف':'By subject / category','المهمة':'Task','متوقع':'Estimated','فعلي':'Actual','الفرق':'Difference','الموضوع / التصنيف':'Subject / category','متوقع أسبوعيًا':'Weekly estimate','مقارنة':'Comparison','وقت تركيز بومودورو':'Pomodoro focus time','لا توجد بيانات وقت كافية لهذا الأسبوع.':'Not enough time data for this week yet.','سجّل جلسات بومودورو أو حدّد مدة متوقعة للمهام لعرض المقارنة.':'Log Pomodoro sessions or set task estimates to see comparisons.','مراجعة الأسبوع':'Weekly review','اليوم':'Day','معاينة النسخة الاحتياطية':'Backup preview','راجع محتويات الملف قبل استبدال بيانات التطبيق.':'Review the backup contents before replacing app data.','جلسة تركيز':'Focus sessions','سجل مالي':'Finance records','عناصر غير صالحة تم استبعادها':'Invalid items excluded','البيانات الحالية على هذا الجهاز':'Current items on this device','سيتم حفظ نسخة منها قبل الاستبدال.':'A copy will be saved before replacement.','بعض السجلات غير الصالحة سيتم استبعادها.':'Some invalid records will be excluded.','تأكيد الاستعادة':'Confirm restore','إلغاء':'Cancel','عنصر':'Items','وقت متوقع':'Estimated time','تقدير المهمة = المدة المحددة × مرات تكرارها في الأسبوع؛ الكتب والكورسات تستخدم التقدير الأسبوعي الاختياري في بيانات العنصر.':'Task estimate = set duration × occurrences this week; books and courses use the optional weekly estimate saved on the item.','ملاحظة: جلسات بومودورو القديمة التي لم تسجل نوع الجلسة تُحسب كوقت تركيز؛ الجلسات الجديدة تستبعد الاستراحات تلقائيًا.':'Note: older Pomodoro logs without a session type are counted as focus; new break sessions are excluded automatically.'});
+  Object.assign(EN, {
+    'خطة تعلّم الإنجليزية':'English learning plan','12 أسبوعًا · من المبتدئ إلى A2/B1 تقريبًا · 30 دقيقة يوميًا · 6 أيام أسبوعيًا':'12 weeks · beginner to around A2/B1 · 30 minutes/day · 6 days/week',
+    'كلمات ١٠ دقايق':'Vocabulary · 10 min','سماع ١٠ دقايق':'Listening · 10 min','كلام ٥ دقايق':'Speaking · 5 min','كتابة ٥ دقايق':'Writing · 5 min',
+    'مهام اليوم':'today tasks','الخطة لم تبدأ بعد':'The plan has not started yet','الأسبوع الحالي':'Current week','الأسبوع 12 من 12 · نهاية الخطة':'Week 12 of 12 · plan complete','ابدأ الخطة':'Start plan',
+    'خطة الـ 12 أسبوع':'12-week checklist','الأسبوع':'Week','حالي':'Current','تفاصيل':'Details','الموضوع':'Topic','القواعد':'Grammar','الهدف':'Goal',
+    'الأساسيات: الحروف والنطق، تعريف نفسك، أرقام، أيام وشهور':'Basics: alphabet and pronunciation, introducing yourself, numbers, days and months',
+    'الأسرة، البيت، الأكل، الروتين اليومي':'Family, home, food and daily routine','الشغل، الفلوس، الشراء، الوقت':'Work, money, shopping and time',
+    'الأماكن والمواصلات، الطقس، الهوايات':'Places and transport, weather and hobbies','اللي حصل: إجازة، أخبار، قصص قصيرة':'Past events: holidays, news and short stories',
+    'الخطط والمستقبل، رسائل ومكالمات بسيطة':'Plans and future, simple messages and calls','تعرّف نفسك وتسأل أسئلة بسيطة':'Introduce yourself and ask simple questions',
+    'تحكي يومك في 5 جمل':'Describe your day in 5 sentences','تسأل عن سعر وتطلب حاجة في محل':'Ask a price and order something in a shop',
+    'تشرح مكان وتوصف طريق':'Describe a place and give directions','تحكي حاجة حصلت امبارح أو في الأجازة':'Talk about something that happened yesterday or on holiday',
+    'تكتب رسالة قصيرة وتعمل محادثة 3 دقايق':'Write a short message and hold a 3-minute conversation',
+    'قياس مستوى: سجّل صوتك دقيقة تعرّف فيها نفسك واكتب 5 جمل وقارن.':'Level check: record one minute introducing yourself, write 5 sentences, and compare.',
+    'اختبار الجمعة':'Friday mini-test','درجة اختبار الأسبوع':'Weekly test score','الدرجة لازم تكون من 0 إلى 15':'Score must be from 0 to 15','تم حفظ الدرجة':'Score saved',
+    'إنجاز الأسبوع':'Mark week complete','تم':'Done','دقيقة':'min','أيام':'days','بدأت':'Started'
+  });
   const RUNRE = /[\u0600-\u06FF]+(?:[ ،]+[\u0600-\u06FF]+)*/g;
   const HASAR = /[\u0600-\u06FF]/;
   let USET = new Set();
@@ -1951,7 +2101,7 @@ const EN = {'د':'m','س':'h','ص':'p','و':'&',
     else if (h === '#/review') html = reviewPage();
     else if (h === '#/books') html = collection(['book'], 'الكتب', '📚');
     else if (h === '#/movies') html = collection(['movie'], 'الأفلام والمسلسلات', '🎬');
-    else if (h === '#/learning') html = collection(['cert', 'playlist'], 'التعلّم', '🎓');
+    else if (h === '#/learning') html = englishPlanCard() + collection(['cert', 'playlist'], 'التعلّم', '🎓');
     else if (h === '#/plans') html = collection(['plan'], 'الخطط والإجازات', '📅');
     else if (h === '#/calendar') html = calendar();
     else if (h === '#/day') html = dayView();
@@ -2169,6 +2319,8 @@ const EN = {'د':'m','س':'h','ص':'p','و':'&',
       case 'inboxDel': { addTombstone('inbox', id); state.settings.inbox = inboxItems().filter(x => x.id !== id); save(); render(); break; }
       case 'inboxTask': { const x = inboxItems().find(z => z.id === id); if (!x) break; addTombstone('inbox', id); state.items.push(Object.assign({ id: uid(), type: 'task', title: x.text, created: C.ymd(now()), todos: [], notes: '', done: {} }, DEFAULTS.task, { freq: 'once', due: C.ymd(now()) })); state.settings.inbox = inboxItems().filter(z => z.id !== id); save(); toast('اتحولت لمهمة'); go('#/tasks'); break; }
       case 'reviewSave': saveWeeklyReview(); break;
+      case 'enStartPlan': { const p = enPlanState(); if (!p.start) { p.start = C.ymd(now()); save(); render(); } break; }
+      case 'enWeekTick': { const p = enPlanState(), w = String(Math.max(1, Math.min(12, Number(b.dataset.w) || 1))), old = p.weeks[w] || {}; if (!p.start) p.start = C.ymd(now()); p.weeks[w] = { done: old.done ? 0 : 1, _u: Date.now() }; save(); render(); break; }
       case 'weekShift': weekOffset = Math.max(-260, Math.min(260, weekOffset + Number(b.dataset.v || 0))); render(); break;
       case 'weekNow': weekOffset = 0; render(); break;
       case 'icsExport': exportCalendarICS(); break;
@@ -2248,6 +2400,20 @@ const EN = {'د':'m','س':'h','ص':'p','و':'&',
   function setCats(g, l) { state.settings.cats = state.settings.cats || {}; if (l) state.settings.cats[g] = l; else delete state.settings.cats[g]; save(); render(); }
   function catAdd(g) { const el = $('#newcat-' + g); const v = el && el.value.trim(); if (!v) return; const l = catList(g).slice(); if (l.includes(v)) { toast('التصنيف موجود'); return; } l.push(v); setCats(g, l); }
   document.addEventListener('change', e => {
+    if (e.target && e.target.dataset && e.target.dataset.enDay) {
+      const p = enPlanState(), k = e.target.dataset.enDay;
+      if (!['w','l','s','r'].includes(k)) return;
+      if (!p.start) p.start = C.ymd(now());
+      const d = C.ymd(now()), rec = p.days[d] || {};
+      rec[k] = e.target.checked ? 1 : 0; rec['_u' + k] = Date.now(); rec._u = Math.max(rec._u || 0, rec['_u' + k]);
+      p.days[d] = rec; save(); render(); return;
+    }
+    if (e.target && e.target.dataset && e.target.dataset.enTest != null) {
+      const p = enPlanState(), w = String(Math.max(1, Math.min(12, Number(e.target.dataset.enTest) || 1))), raw = e.target.value.trim();
+      if (raw !== '' && (!/^\d+$/.test(raw) || Number(raw) < 0 || Number(raw) > 15)) { e.target.value = p.tests[w] && p.tests[w].score != null ? p.tests[w].score : ''; toast(X('الدرجة لازم تكون من 0 إلى 15','Score must be from 0 to 15')); return; }
+      const score = raw === '' ? null : Number(raw);
+      p.tests[w] = { score, _u: Date.now() }; save(); toast(X('تم حفظ الدرجة','Score saved')); return;
+    }
     if (e.target.id === 'day-date') { dayViewDate = e.target.value || C.ymd(now()); render(); return; }
     if (e.target.dataset && e.target.dataset.subtaskEdit) { const it0 = find(e.target.dataset.id), st = it0 && (it0.subtasks || []).find(x => x.id === e.target.dataset.subtaskEdit), v = e.target.value.trim(); if (st && v) { st.t = v.slice(0,500); st.updated = Date.now(); save(); } else if (st) { e.target.value = st.t; toast('اكتب اسم المهمة الفرعية'); } return; }
     if (e.target.dataset && e.target.dataset.fsel) { const d = e.target.dataset, v = e.target.value, q0 = qs[d.k] || {}; if (d.fsel === 'ctype') qs[d.k] = Object.assign(q0, { t: v, st: 'all' }); else if (d.fsel === 'cst') qs[d.k] = Object.assign(q0, { st: v }); else if (d.fsel === 'cgn') qs[d.k] = Object.assign(q0, { g: v }); else if (d.fsel === 'cpl') qs[d.k] = Object.assign(q0, { pl: v }); else if (d.fsel === 'tsort') tf.sort = v; else if (d.fsel === 'tfreq') tf.freq = v; else if (d.fsel === 'tcat') tf.cat = v; else if (d.fsel === 'mxtab') mx.tab = v; else if (d.fsel === 'iper') mx.ip = +v; else if (d.fsel === 'isort') mx.is = v; render(); return; }
@@ -2387,6 +2553,34 @@ const EN = {'د':'m','س':'h','ص':'p','و':'&',
     const settings = Object.assign({}, sb, sa, { _tombstones: [...tm.values()] });
     if (Array.isArray(sa.inbox) || Array.isArray(sb.inbox)) { const im = new Map(); (sa.inbox || []).forEach(x => im.set(x.id, x)); (sb.inbox || []).forEach(x => { if (!im.has(x.id)) im.set(x.id, x); }); settings.inbox = [...im.values()].filter(x => !dead.has('inbox|' + x.id)); }
     if (sa.weeklyReviews || sb.weeklyReviews) settings.weeklyReviews = Object.assign({}, sb.weeklyReviews || {}, sa.weeklyReviews || {});
+    const mergeEnPlan = (left, right) => {
+      if (!left && !right) return undefined;
+      const x = left && typeof left === 'object' ? left : {}, y = right && typeof right === 'object' ? right : {};
+      const out = { start: [x.start,y.start].filter(Boolean).sort()[0] || '', days: {}, weeks: {}, tests: {} };
+      const mergeMap = (aa, bb, kind) => {
+        const keys = new Set([...Object.keys(aa || {}), ...Object.keys(bb || {})]);
+        keys.forEach(k => {
+          const a0 = aa && aa[k], b0 = bb && bb[k];
+          if (!a0) { out[kind][k] = Object.assign({}, b0); return; }
+          if (!b0) { out[kind][k] = Object.assign({}, a0); return; }
+          if (kind === 'days') {
+            const z = {};
+            ['w','l','s','r'].forEach(f => {
+              const ua = Number(a0['_u'+f] || a0._u || 0), ub = Number(b0['_u'+f] || b0._u || 0);
+              const pick = ub > ua ? b0 : a0;
+              if (pick[f] != null) z[f] = pick[f];
+              const u = Math.max(ua,ub); if (u) z['_u'+f] = u;
+            });
+            z._u = Math.max(Number(a0._u || 0), Number(b0._u || 0)); out[kind][k] = z;
+          } else {
+            out[kind][k] = Number(b0._u || 0) > Number(a0._u || 0) ? Object.assign({}, b0) : Object.assign({}, a0);
+          }
+        });
+      };
+      mergeMap(x.days,y.days,'days'); mergeMap(x.weeks,y.weeks,'weeks'); mergeMap(x.tests,y.tests,'tests');
+      return out;
+    };
+    const ep = mergeEnPlan(sa.enPlan, sb.enPlan); if (ep) settings.enPlan = ep;
     const itemMap = new Map();
     a.items.forEach(i => itemMap.set(i.id, i));
     b.items.forEach(i => {
@@ -2422,7 +2616,7 @@ const EN = {'د':'m','س':'h','ص':'p','و':'&',
     const ae = document.activeElement;
     if (!$('#sheet') && !(ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName))) render();
   }
-  const sbEmpty = () => !state.items.length && !(state.log && state.log.length) && !(state.settings.inbox && state.settings.inbox.length) && !(state.settings.weeklyReviews && Object.keys(state.settings.weeklyReviews).length) && !(state.exp && ['inc','loans','tx','lists','fixed','errands','errTpl','savingsGoals'].some(k => Array.isArray(state.exp[k]) && state.exp[k].length));
+  const sbEmpty = () => !state.items.length && !(state.log && state.log.length) && !(state.settings.inbox && state.settings.inbox.length) && !(state.settings.weeklyReviews && Object.keys(state.settings.weeklyReviews).length) && !(state.settings.enPlan && (state.settings.enPlan.start || Object.keys(state.settings.enPlan.days || {}).length || Object.keys(state.settings.enPlan.weeks || {}).length || Object.keys(state.settings.enPlan.tests || {}).length)) && !(state.exp && ['inc','loans','tx','lists','fixed','errands','errTpl','savingsGoals'].some(k => Array.isArray(state.exp[k]) && state.exp[k].length));
   function sbStat(t) { sbMsg = t; const el = $('#sbstat'); if (el) el.textContent = sbStatText(); }
   function sbStatText() {
     if (!sbSess) return '';
