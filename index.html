@@ -471,11 +471,16 @@ const Core = (() => {
     const dateKeys = ['created','due','date','sdate','edate','expiry','doneDate'];
     const numKeys = ['pages','read','pace','total','watched','rating','year','price'];
     const items = data.items.filter(i => {
-      if (!validRecord(i) || !ok.includes(i.type) || typeof i.title !== 'string' || !i.title.trim() || i.title.length > 500) return false;
-      if (dateKeys.some(k => i[k] != null && !validDate(i[k]))) return false;
-      if (numKeys.some(k => i[k] != null && i[k] !== '' && (!Number.isFinite(Number(i[k])) || Number(i[k]) < 0 || Number(i[k]) > 1000000000))) return false;
-      if (!safeUrl(i.url) || !safeUrl(i.link) || !safeUrl(i.cover)) return false;
-      if (i.done != null && (typeof i.done !== 'object' || Array.isArray(i.done))) return false;
+      if (!validRecord(i) || !ok.includes(i.type) || typeof i.title !== 'string' || !i.title.trim()) return false;
+      if (i.title.length > 500) i.title = i.title.slice(0, 500);
+      dateKeys.forEach(k => { if (i[k] != null && !validDate(i[k])) delete i[k]; });
+      numKeys.forEach(k => {
+        if (i[k] == null || i[k] === '') return;
+        if (k === 'year' && (typeof i[k] === 'string' || typeof i[k] === 'number')) { i[k] = String(i[k]).slice(0, 30); return; } // year is free text on movies ("2019-2023", Arabic digits)
+        if (!Number.isFinite(Number(i[k])) || Number(i[k]) < 0 || Number(i[k]) > 1000000000) delete i[k];
+      });
+      ['url', 'link', 'cover'].forEach(k => { if (!safeUrl(i[k])) delete i[k]; });
+      if (i.done != null && (typeof i.done !== 'object' || Array.isArray(i.done))) delete i.done;
       return true;
     }).map(fixItem);
     const settings = Object.assign({ name: '', views: {} }, data.settings && typeof data.settings === 'object' && !Array.isArray(data.settings) ? data.settings : {});
@@ -521,7 +526,7 @@ const Core = (() => {
       exp = Object.assign({}, exp);
       const arrays = ['inc','loans','tx','lists','fixed','errands','errTpl'];
       arrays.forEach(k => { if (Array.isArray(exp[k])) exp[k] = exp[k].filter(validRecord); });
-      ['inc','tx','loans'].forEach(k => { if (Array.isArray(exp[k])) exp[k] = exp[k].filter(x => x.d != null && validDate(x.d) && x.amt != null && Number.isFinite(Number(x.amt)) && Number(x.amt) >= 0 && Number(x.amt) <= 1000000000000); });
+      ['inc','tx','loans'].forEach(k => { if (Array.isArray(exp[k])) exp[k].forEach(x => { if (x.d == null || !validDate(x.d)) x.d = ymd(new Date()); const a = Number(x.amt); if (x.amt == null || !Number.isFinite(a) || a < 0 || a > 1000000000000) x.amt = 0; }); });
       (exp.tx || []).forEach(x => { if (Array.isArray(x.items)) x.items = x.items.filter(i => i && typeof i.n === 'string' && i.n.trim() && i.n.length <= 500 && Number.isFinite(Number(i.q == null ? 1 : i.q)) && Number(i.q == null ? 1 : i.q) > 0 && Number.isFinite(Number(i.p)) && Number(i.p) >= 0 && Number(i.p) <= 1000000000); });
       (exp.loans || []).forEach(x => { if (Array.isArray(x.pays)) x.pays = x.pays.filter(p => validRecord(p) && (p.d == null || validDate(p.d)) && Number.isFinite(Number(p.amt)) && Number(p.amt) >= 0 && Number(p.amt) <= 1000000000000); });
       (exp.lists || []).forEach(x => { if (Array.isArray(x.items)) x.items = x.items.filter(i => validRecord(i) && typeof i.n === 'string' && i.n.trim() && i.n.length <= 500 && Number.isFinite(Number(i.q == null ? 1 : i.q)) && Number(i.q == null ? 1 : i.q) >= 0 && Number.isFinite(Number(i.p == null ? 0 : i.p)) && Number(i.p == null ? 0 : i.p) >= 0); });
@@ -627,7 +632,7 @@ const Core = (() => {
   const summaryCache = new Map();
   function save() {
     dataRevision++; summaryCache.clear();
-    try { localStorage.setItem(KEY, JSON.stringify(state)); try { syncDirty(); } catch (e2) { } }
+    try { try { localStorage.setItem(KEY, JSON.stringify(state)); } finally { try { syncDirty(); } catch (e2) { } } }
     catch (e) { if (!memoryOnly) { memoryOnly = true; toast('تعذّر الحفظ (المساحة ممتلئة أو التخزين مقفول)، اعمل نسخة احتياطية'); } }
   }
   function toast(m) { const t = document.createElement('div'); t.className = 'toast'; t.setAttribute('role', 'status'); t.setAttribute('aria-live', 'polite'); t.setAttribute('aria-atomic', 'true'); t.textContent = m; document.body.appendChild(t); setTimeout(() => t.remove(), 2600); }
@@ -782,11 +787,14 @@ const Core = (() => {
     const complete = d => { const x = p.days[d] || {}; return ['w','l','s','r'].every(k => x[k] === 1); };
     let d = C.parse(todayKey);
     if (!complete(todayKey)) d = C.addDays(d, -1);
-    let n = 0;
+    let n = 0, lastMiss = null;
     for (let i = 0; i < 3700; i++) {
       const k = C.ymd(d);
-      if (!complete(k)) break;
-      n++; d = C.addDays(d, -1);
+      if (!complete(k)) {
+        if (lastMiss !== null && i - lastMiss < 7) break; // second miss inside a 7-day window ends the streak
+        lastMiss = i;
+      } else n++;
+      d = C.addDays(d, -1);
     }
     return n;
   }
@@ -1110,7 +1118,7 @@ const Core = (() => {
   const catIcon = k => { const c = MCATS.find(x => x[0] === k); return c ? c[1] : '🏷'; };
   const catOpts = sel => allCats().map(k => `<option value="${esc(k)}" ${k === sel ? 'selected' : ''}>${catIcon(k)} ${esc(catName(k))}</option>`).join('');
   const cur = () => X('ج.م', 'EGP');
-  const mn = v => { const n = Number(String(v == null ? '' : v).replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/[٫]/g, '.').replace(/[٬,\s]/g, '')); return Number.isFinite(n) ? n : 0; };
+  const mn = v => { const n = Number(String(v == null ? '' : v).replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/[٫]/g, '.').replace(/[٬\s]/g, '').replace(/^([^,]*),(\d{1,2})$/, '$1.$2').replace(/,/g, '')); return Number.isFinite(n) ? n : 0; };
   const r2 = n => Math.round(n * 100) / 100;
   const fm = n => r2(n).toLocaleString('en-US', { maximumFractionDigits: 2 });
   const money = n => `<bdi>${fm(n)}</bdi> ${cur()}`;
@@ -2505,11 +2513,16 @@ const EN = {'د':'m','س':'h','ص':'p','و':'&',
   const sbJson = () => { const s = Object.assign({}, state); delete s.fresh; return JSON.stringify(s); };
   async function sbFetch(path, opt) {
     opt = opt || {};
-    const r = await fetch(SBU + path, Object.assign({ cache: 'no-store' }, opt, { headers: Object.assign({ apikey: SBK, 'Content-Type': 'application/json' }, opt.headers || {}) }));
-    const ct = r.headers.get('content-type') || '';
-    if (!ct.includes('json')) throw new Error('net');
-    let j = null; try { j = await r.json(); } catch (e) { }
-    return { ok: r.ok, status: r.status, json: j };
+    const ac = new AbortController(), tm = setTimeout(() => ac.abort(), 20000);
+    try {
+      const r = await fetch(SBU + path, Object.assign({ cache: 'no-store' }, opt, { signal: ac.signal, headers: Object.assign({ apikey: SBK, 'Content-Type': 'application/json' }, opt.headers || {}) }));
+      const ct = r.headers.get('content-type') || '';
+      if (!ct.includes('json')) throw new Error('net');
+      let j = null; try { j = await r.json(); } catch (e) { }
+      if (ac.signal.aborted) throw new Error('net');
+      return { ok: r.ok, status: r.status, json: j };
+    } catch (e) { if (e && e.name === 'AbortError') throw new Error('net'); throw e; }
+    finally { clearTimeout(tm); }
   }
   function sbSetSess(j) { sbSess = { at: j.access_token, rt: j.refresh_token, exp: Date.now() + (j.expires_in || 3600) * 1000, uid: j.user && j.user.id, email: j.user && j.user.email }; sbSaveSess(); }
   async function sbToken() {
